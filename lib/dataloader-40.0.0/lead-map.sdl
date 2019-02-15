@@ -1,0 +1,9 @@
+#Mapping values
+#Thu Mar 09 17:27:12 CST 2017
+LegacyEnquiryId__c=LegacyEnquiryId__c
+ConvertedAccountLegacyCustomerId__c=ConvertedAccount:\LegacyCustomerId__c
+FirstName=FirstName
+LastName=LastName
+Phone=Phone
+IsConverted=IsConverted
+Status=Status

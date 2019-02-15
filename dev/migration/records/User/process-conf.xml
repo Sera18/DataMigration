@@ -1,0 +1,233 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="create" singleton="false">
+    <property name="name" value="create" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="createDatabaseConfig" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/create.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/create.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/create.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/create.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="upsert" />
+        <entry key="sfdc.externalIdField" value="Ext_Id__c" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="databaseRead" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="modify" singleton="false">
+    <property name="name" value="modify" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="modifyDatabaseConfig" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/modify.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/modify.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/modify.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/modify.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="update" />
+        <entry key="sfdc.externalIdField" value="Ext_Id__c" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="databaseRead" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="associate" singleton="false">
+    <property name="name" value="associate" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="associateDatabaseConfig" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/associate.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/associate.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/associate.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/associate.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="extract" />
+        <entry key="sfdc.extractionSOQL" value="SELECT Id, Ext_Id__c FROM User WHERE Ext_Id__c != null" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="databaseWrite" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="pullback" singleton="false">
+    <property name="name" value="pullback" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="pullbackDatabaseConfig" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/pullback.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/pullback.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/pullback.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/pullback.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="extract" />
+        <entry key="sfdc.extractionSOQL" value="SELECT Id FROM User" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="databaseWrite" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="pretruncate" singleton="false">
+    <property name="name" value="pretruncate" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="dev/migration/records/User/truncate.csv" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/truncate.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/truncate.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/truncate.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/truncate.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="extract" />
+        <entry key="sfdc.extractionSOQL" value="SELECT Id FROM User WHERE Ext_Id__c != null" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="csvWrite" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="truncate" singleton="false">
+    <property name="name" value="truncate" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="dev/migration/records/User/truncate.csv" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/truncate.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/truncate.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/truncate.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/truncate.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="hard_delete" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="csvRead" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="deleteData" singleton="false">
+    <property name="name" value="deleteData" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="truncateDatabaseConfig" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/deleteData.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/truncate.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/deleteData.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/deleteData.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="delete" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="databaseRead" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.process.ProcessRunner" id="fixError" singleton="false">
+    <property name="name" value="fixError" />
+    <property name="configOverrideMap">
+      <map>
+        <entry key="dataAccess.name" value="dev/migration/records/User/FixErrors.csv" />
+        <entry key="sfdc.entity" value="User" />
+        <entry key="sfdc.debugMessagesFile" value="dev/migration/records/User/fixError.log" />
+        <entry key="process.mappingFile" value="dev/migration/records/User/create.sdl" />
+        <entry key="process.outputSuccess" value="dev/migration/records/User/fixError.success" />
+        <entry key="process.outputError" value="dev/migration/records/User/fixError.error" />
+        <entry key="process.enableNoFieldValWarning" value="false" />
+        <entry key="process.operation" value="upsert" />
+        <entry key="sfdc.externalIdField" value="Ext_Id__c" />
+        <entry key="sfdc.timezone" value="GMT" />
+        <entry key="sfdcInternal" value="true" />
+        <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+        <entry key="sfdc.timeoutSecs" value="540" />
+        <entry key="sfdc.loadBatchSize" value="10000" />
+        <entry key="sfdc.useBulkApi" value="true" />
+        <entry key="dataAccess.type" value="csvRead" />
+        <entry key="dataAccess.writeBatchSize" value="2000" />
+        <entry key="dataAccess.readUTF8" value="true" />
+        <entry key="dataAccess.writeUTF8" value="true" />
+        <entry key="sfdc.debugMessages" value="true" />
+        <entry key="sfdc.bulkApiSerialMode" value="false" />
+        <entry key="process.enableLastRunOutput" value="false" />
+      </map>
+    </property>
+  </bean>
+</beans>

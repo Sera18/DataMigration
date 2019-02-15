@@ -1,0 +1,113 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo]
+SELECT
+[Lesson__c.object].[Content_Map__r.Ext_Id__c],
+[Lesson__c.object].[Covered_In_Class_Key__c],
+[Lesson__c.object].[Ext_Id__c],
+[Lesson__c.object].[IsMigrated__c],
+[Lesson__c.object].[Lesson_Type_Code__c],
+[Lesson__c.object].[Mentor_Resource_Key__c],
+[Lesson__c.object].[Name],
+[Lesson__c.object].[Online_Homework_Key__c],
+[Lesson__c.object].[Ordering_Sequence__c],
+[Lesson__c.object].[Paper_Based_Homework_Key__c],
+[Lesson__c.object].[Unique_Sequence_Number__c],
+[Lesson__c.object].[Unit_Order_Sequence__c]
+FROM [Lesson__c.object]
+ORDER BY Ext_Id__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Content_Map__r.Ext_Id__c</value>
+<value>Covered_In_Class_Key__c</value>
+<value>Ext_Id__c</value>
+<value>IsMigrated__c</value>
+<value>Lesson_Type_Code__c</value>
+<value>Mentor_Resource_Key__c</value>
+<value>Name</value>
+<value>Online_Homework_Key__c</value>
+<value>Ordering_Sequence__c</value>
+<value>Paper_Based_Homework_Key__c</value>
+<value>Unique_Sequence_Number__c</value>
+<value>Unit_Order_Sequence__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo]
+SELECT
+Id AS Id
+FROM [Lesson__c.association]
+LEFT JOIN [Lesson__c.object] ON [Lesson__c.object].[Ext_Id__c] = [Lesson__c.association].[Ext_Id__c]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo] INSERT INTO [Lesson__c.association]
+(Id,Ext_Id__c)
+VALUES (@Id@,@Ext_Id__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_Id__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo] INSERT INTO [Lesson__c]
+(Id)
+VALUES (@Id@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>SELECT Id
+    FROM [Lesson__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

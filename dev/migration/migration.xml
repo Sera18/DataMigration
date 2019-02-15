@@ -1,0 +1,394 @@
+<!--
+ ! last mile tools for EF
+ !-->
+<project xmlns:sf="antlib:com.salesforce" xmlns:ac="antlib:net.sf.antcontrib">
+
+    <include file="sfdc.xml" as="sfdc" />
+    <include file="msql.xml" as="msql" />
+    <include file="sdl.xml" as="sdl" />
+    <taskdef uri="antlib:com.salesforce" classpath="lib/salesforce_ant_40.0/ant-salesforce.jar" />
+    <taskdef uri="antlib:net.sf.antcontrib" classpath="lib/ant-contrib-1.0b3/ant-contrib-1.0b3.jar" />
+    
+    <target name="login-msql" description="Log into MSQL environment">
+        <msql-login
+            host="${msql.host}"
+            port="${msql.port}"
+            username="${msql.username}"
+            password="${msql.password}"
+            database="${msql.database}"
+        />
+    </target>
+    <!-- Logs into SFDC via username and password. Notably, this writes the Session ID to an Ant property, which can be persisted to file or used by downstream tasks such as the Data Loader CLI or execute anonymous. -->
+    <target name="login-sfdc-target" description="Log into SFDC environment">
+        <sfdc-login
+            username="${sfdc-target.username}"
+            password="${sfdc-target.password}"
+            loginurl="${sfdc-target.loginurl}"
+        />
+    </target>
+
+    <target name="login-sfdc-source" description="Log into SFDC environment">
+        <sfdc-login
+            username="${sfdc-source.username}"
+            password="${sfdc-source.password}"
+            loginurl="${sfdc-source.loginurl}"
+        />
+    </target>
+
+    <!-- ant migration tool -->
+    <!-- Retrieve Demo -->
+    <target name="sfdc-retrieve" depends="login-sfdc-source" description="Demo Retrieve">
+        <sfdc-retrieve outpath="temp/deploy" />
+    </target>
+    <!-- Deploy Demo -->
+    <target name="sfdc-deploy" depends="login-sfdc-target" description="Demo Deploy">
+        <sfdc-deploy outpath="temp/deploy" />
+    </target>
+    <!-- sfdc-godmode creates a permission set called Migration. This grants access to all artefacts. The permission set is assigned to the running user at the end of the task.  -->
+    <target name="sfdc-godmode" depends="login-sfdc-target" description="Grant user all field level securities and record type visibilities etc">
+        <sfdc-godmode serverUrl="${sfdc.serverUrl}" sessionId="${sfdc.sessionId}" outpath="temp/godmode" />
+    </target>
+    <!-- sfdc-wsdl dumps all the organization web service definitions to WSDL files. The Enterprise WSDL is a convenient starting point for code generation tasks.  -->
+    <target name="sfdc-wsdl" depends="login-sfdc-target" description="SFDC dump all web service schema definitions">
+        <sfdc-wsdl path="dev/migration/wsdl" />
+    </target>
+    <!-- sfdc-execanon runs a piece of Apex Code using execute anonymous. It is used to automate changes outside the reach of the Metadata API such as permission set assignments -->
+    <target name="sfdc-execanon" depends="login-msql,login-sfdc-target" description="Demo Deploy">
+        <sfdc-execanon serverUrl="${sfdc.serverUrl}" sessionId="${sfdc.sessionId}" >
+            List&lt;Id&gt; Ids = new List&lt;Id&gt;();
+            List&lt;PermissionSetAssignment&gt;psaList = [SELECT Id 
+                                                        FROM PermissionSetAssignment 
+                                                        WHERE PermissionSet.Name = 'Migration'];
+            List&lt;PermissionSet&gt;psList = [SELECT Id 
+                                            FROM PermissionSet 
+                                            WHERE PermissionSet.Name = 'Migration'];
+            for(PermissionSetAssignment psa : psaList){
+                Ids.add(psa.Id);
+            }
+            for(PermissionSet ps : psList){
+                Ids.add(ps.Id);
+            }
+            Database.delete(Ids);
+        </sfdc-execanon>
+    </target>
+    
+    <!-- codegen will generate code for a full load of all records. -->
+    <target name="codegen/RecordType" depends="login-msql">
+        <sdl-codegen entity="RecordType" externalIdField="DeveloperName" orderByField="Id" />
+    </target>
+
+    <target name="codegen/User" depends="login-msql">
+        <sdl-codegen entity="User" externalIdField="Ext_Id__c" orderByField="Id" />
+    </target>
+    
+    <target name="codegen/Content_Map__c" depends="login-msql">
+        <sdl-codegen entity="Content_Map__c" externalIdField="Ext_Id__c" orderByField="Ext_Id__c" />
+    </target>
+
+    <target name="codegen/Lesson__c" depends="login-msql">
+        <sdl-codegen entity="Lesson__c" externalIdField="Ext_Id__c" orderByField="Ext_Id__c" />
+    </target>
+
+    <target name="codegen/Account" depends="login-msql,login-sfdc-target">
+        <sdl-codegen entity="Account" externalIdField="External_ID__c" orderByField="Id" />
+    </target>
+
+    <target name="codegen-sample" description="Add WHERE clauses to generated code to limit data volumes">
+        <replace file="dev/migration/records/Content_Map__c/database-conf.xml" token="ORDER BY" value="WHERE [Ext_Id__c] LIKE '%0' ORDER BY" />
+    </target>
+
+    <target name="LoadContentMapandLesson" description="Load Content_Map__c and Lesson__c" depends="
+        preload,
+        load/Content_Map__c,
+        load/Lesson__c,
+        sendEmail
+    " />
+
+    <target name="preload" depends="login-msql,login-sfdc-target">
+        <sdl-associate entity="RecordType" />
+        <sdl-associate entity="User" />
+    </target>
+
+    <target name="load/Content_Map__c" depends="login-msql,login-sfdc-target">
+        <sdl-create entity="Content_Map__c" />
+        <sdl-associate entity="Content_Map__c" />
+    </target>
+
+    <target name="modify/Content_Map__c" depends="login-msql,login-sfdc-target">
+        <sdl-modify entity="Content_Map__c" />
+    </target>
+
+    <target name="delete/Content_Map__c" depends="login-msql,login-sfdc-target">
+        <sdl-deleteData entity="Content_Map__c" />
+    </target>
+
+    <target name="unload/Content_Map__c" depends="login-msql,login-sfdc-target">
+        <sdl-truncate entity="Content_Map__c" />
+    </target>
+
+    <target name="fixError/User" depends="login-msql,login-sfdc-target">
+        <sdl-fixError entity="User" />
+    </target>
+
+    <target name="pullback/Account" depends="login-msql,login-sfdc-target">
+        <sdl-pullback entity="Account" />
+    </target>
+
+    <target name="load/Lesson__c" depends="login-msql,login-sfdc-target">
+        <sdl-create entity="Lesson__c" />
+        <sdl-associate entity="Lesson__c" />
+    </target>
+
+    <target name="sendEmail" description="Demo sendEmail">
+        <sdl-sendEmail subject="Last Mile Scripts Demo" message="Last Mile Scripts Demo" attachment="Demo/dev/migration/records/Content_Map__c/create.error"/>
+    </target>
+
+    <!-- sfdc-snapshot lists all metadata components of all types, assembles a Salesforce Package definition file, then downloads everything to disk. Use this to monitor changes in the target environment. It provides a complete and accurate snapshot of the entire environment configuration. -->
+    <target name="sfdc-snapshot" depends="login-sfdc-target" description="SFDC environment snapshot">
+        <sfdc-snapshot outpath="temp/snapshot" />
+    </target>
+
+    <target name="mapSourceSchema" depends="login-msql" description="Dump ODIN schemata to file">
+        <delete dir="dev/migration/map-source" />
+        <mkdir dir="dev/migration/map-source" />
+        <mapSourceSchema path="dev/migration/map-source" database="demo" table="Account.object" />
+        <mapSourceSchema path="dev/migration/map-source" database="demo" table="Content_Map__c.object" />
+        <mapSourceSchema path="dev/migration/map-source" database="demo" table="lesson__c.object" />
+        <mapSourceSchema path="dev/migration/map-source" database="demo" table="User.object" />
+    </target>
+
+    <target name="mapTargetSchema" description="Dump SFDC schemata to file">
+        <delete dir="dev/migration/map-target" />
+
+        <mkdir dir="dev/migration/map-target/objects" />
+        <mapTargetSchema outpath="dev/migration/map-target/objects" infile="dev/migration/wsdl/enterprise.wsdl" entity="Account" />
+        <mapTargetSchema outpath="dev/migration/map-target/objects" infile="dev/migration/wsdl/enterprise.wsdl" entity="Content_Map__c" />
+        <mapTargetSchema outpath="dev/migration/map-target/objects" infile="dev/migration/wsdl/enterprise.wsdl" entity="lesson__c" />
+        <mapTargetSchema outpath="dev/migration/map-target/objects" infile="dev/migration/wsdl/enterprise.wsdl" entity="User" />
+
+        <mkdir dir="dev/migration/map-target/standardValueSets" />
+        <ac:for param="file">
+            <fileset dir="dev\migration\map-target/standardValueSets" />
+            <sequential><mapStandardValueSet outpath="dev/migration/map-target/standardValueSets" infile="@{file}" /></sequential>
+        </ac:for>
+
+        <mkdir dir="dev/migration/map-target/globalValueSets" />
+        <ac:for param="file">
+            <fileset dir="dev\migration\map-target/globalValueSets" />
+            <sequential><mapGlobalValueSet outpath="dev/migration/map-target/globalValueSets" infile="@{file}" /></sequential>
+        </ac:for>
+
+    </target>
+
+    <macrodef name="mapSourceSchema">
+
+        <attribute name="database" description="Database name" />
+        <attribute name="table" description="Table name" />
+        <attribute name="path" description="Output path" />
+
+        <sequential>
+            <sql output="@{path}/@{table}.tsv" classpath="lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" driver="com.microsoft.sqlserver.jdbc.SQLServerDriver" url="jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}" userid="${msql.username}" password="${msql.password}" print="yes" showheaders="no" showtrailers="no" >
+                USE [@{database}] SELECT
+                    CONCAT(
+                        TABLE_NAME,
+                        CHAR(9),
+                        COLUMN_NAME,
+                        CHAR(9),
+                        CHAR(9),
+                        CASE
+                            WHEN [DATA_TYPE] = 'char' THEN CONCAT('CHAR(', CHARACTER_MAXIMUM_LENGTH, ')')
+                            WHEN [DATA_TYPE] = 'varchar' THEN CONCAT('VARCHAR(', CHARACTER_MAXIMUM_LENGTH, ')')
+                            WHEN [DATA_TYPE] = 'nvarchar' THEN CONCAT('NVARCHAR(', CHARACTER_MAXIMUM_LENGTH, ')')
+                            WHEN [DATA_TYPE] = 'decimal' THEN CONCAT('DECIMAL(', NUMERIC_PRECISION, ',', NUMERIC_SCALE, ')')
+                            ELSE UPPER([DATA_TYPE])
+                        END
+                    )
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = '@{table}'
+                ORDER BY COLUMN_NAME
+            </sql>
+            <replaceregexp flags="gm" file="@{path}/@{table}.tsv" match="^\s+" replace="" />
+            <echo file="@{path}/@{table}.tsv" append="true">@{table}&#x0009;*&#x0009;&#x0009;-&#x0009;-&#x0009;&#x0009;&#x0009;(SELECT * FROM [@{table}] AS [x] WHERE [x].[@{table}_id] = [@{table}].[@{table}_id] FOR JSON AUTO, WITHOUT_ARRAY_WRAPPER)&#x0009;&#x0009;Odin@{table}__c&#x0009;&#x0009;NTEXT${line.separator}</echo>
+            <replaceregexp flags="m" file="@{path}/@{table}.tsv" match="@{table}&#x0009;@{table}_id&#x0009;&#x0009;INT" replace="@{table}&#x0009;@{table}_id&#x0009;&#x0009;INT&#x0009;&#x0009;-&#x0009;&#x0009;[@{table}].[@{table}_id]&#x0009;&#x0009;Odin@{table}Key__c&#x0009;&#x0009;VARCHAR(255)" />
+            <replaceregexp flags="gm" file="@{path}/@{table}.tsv" match="([A-Za-z0-9]+)_lkp__c" replace="\1__c" />
+            <replaceregexp flags="gm" file="@{path}/@{table}.tsv" match="([A-Za-z0-9_]+)_lkp_id" replace="Code" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="mapTargetSchema">
+
+        <attribute name="infile" description="Input WSDL file" />
+        <attribute name="entity" description="Standard Object or Custom Object" />
+        <attribute name="outpath" description="Output path" />
+
+        <sequential>
+
+            <ac:var unset="true" name="outfile" />
+            <property name="outfile" value="@{outpath}/@{entity}.tsv" />
+
+            <!-- copy to scratch area -->
+            <copy file="@{infile}" tofile="${outfile}" overwrite="true" />
+
+            <!-- trim down to object of interest -->
+            <replaceregexp flags="s" file="${outfile}" match=".*&lt;complexType name=&quot;@{entity}&quot;&gt;" replace="" />
+            <replaceregexp flags="s" file="${outfile}" match="&lt;/complexType&gt;.*" replace="" />
+            <replaceregexp flags="s" file="${outfile}" match=".*&lt;sequence&gt;" replace="" />
+            <replaceregexp flags="s" file="${outfile}" match="&lt;/sequence&gt;.*" replace="" />
+
+            <!-- leave only real fields -->
+            <replaceregexp flags="gm" file="${outfile}" match=".*tns:QueryResult.*" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match=".*tns:address.*" replace="" />
+            <!--<replaceregexp flags="gm" file="${outfile}" match=".*__pc.*" replace="" />-->
+            <replaceregexp flags="gm" file="${outfile}" match=".*ens:.*" replace="" />
+
+            <!-- normalize whitespace -->
+            <replaceregexp flags="gm" file="${outfile}" match="^\s+" replace="" />
+
+            <!-- strip xml -->
+            <replaceregexp flags="gm" file="${outfile}" match="&lt;element name=&quot;" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match="&quot; nillable=[ =&quot;A-Za-z0-9]+type=&quot;" replace="&#x0009;&#x0009;" />
+            <replaceregexp flags="gm" file="${outfile}" match="&quot;/&gt;" replace="" />
+
+            <!-- convert to msql column types-->
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:string" replace="NVARCHAR(255)" />
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:boolean" replace="BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:dateTime" replace="DATETIME" />
+            <replaceregexp flags="gm" file="${outfile}" match="tns:ID" replace="VARCHAR(18)" />
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:date" replace="DATE" />
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:int" replace="DECIMAL(18,0)" />
+            <replaceregexp flags="gm" file="${outfile}" match="xsd:double" replace="DECIMAL(15,3)" />
+
+            <!-- prepend object name -->
+            <replaceregexp flags="gm" file="${outfile}" match="^" replace="@{entity}.object&#x0009;" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="mapStandardValueSet">
+        <attribute name="infile" description="Standard value set metadata file" />
+        <attribute name="outpath" description="Output path" />
+
+        <sequential>
+            <!-- get filename without extension -->
+            <ac:var unset="true" name="inbasename" />
+            <basename property="inbasename" file="@{infile}" suffix="standardValueSet" />
+            <ac:var unset="true" name="outfile" />
+            <property name="outfile" value="@{outpath}/${inbasename}.tsv" />
+
+            <!-- copy lookups and sanitize -->
+            <copy file="@{infile}" tofile="${outfile}" overwrite="true" />
+            <replaceregexp flags="s" file="${outfile}" match="&lt;sorted&gt;[^&lt;]+&lt;/sorted&gt;" replace="&lt;standardValue&gt;&lt;/standardValue&gt;" />
+            <replaceregexp flags="s" file="${outfile}" match=".*&lt;standardValue&gt;" replace="" />
+            <replaceregexp flags="s" file="${outfile}" match="&lt;/standardValue&gt;.*" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match="&gt;.*" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match="&lt;" replace="" />
+
+            <!-- remove any CustomValue properties -->
+            <replaceregexp flags="m" file="${outfile}" match="fullName" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="color" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="default" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="description" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="isActive" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="label" replace="" />
+
+            <!-- explicitly add all CustomValue properties -->
+            <echo file="${outfile}" append="true" message="${line.separator}fullName" />
+            <echo file="${outfile}" append="true" message="${line.separator}color" />
+            <echo file="${outfile}" append="true" message="${line.separator}default" />
+            <echo file="${outfile}" append="true" message="${line.separator}description" />
+            <echo file="${outfile}" append="true" message="${line.separator}isActive" />
+            <echo file="${outfile}" append="true" message="${line.separator}label" />
+
+            <!-- bonus needed for ETL -->
+            <echo file="${outfile}" append="true" message="${line.separator}sortOrder" />
+
+            <!-- convert to tsv -->
+            <replaceregexp flags="gm" file="${outfile}" match="fullName" replace="fullName&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="color" replace="color&#x0009;&#x0009;VARCHAR(7)" />
+            <replaceregexp flags="gm" file="${outfile}" match="default" replace="default&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="description" replace="description&#x0009;&#x0009;NVARCHAR(255)" />
+            <replaceregexp flags="gm" file="${outfile}" match="isActive" replace="isActive&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="label" replace="label&#x0009;&#x0009;NVARCHAR(255)" />
+            <replaceregexp flags="gm" file="${outfile}" match="allowEmail" replace="allowEmail&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="closed" replace="closed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="converted" replace="converted&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="cssExposed" replace="cssExposed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="forecastCategory" replace="forecastCategory&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="highPriority" replace="highPriority&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="probability" replace="probability&#x0009;&#x0009;INT" />
+            <replaceregexp flags="gm" file="${outfile}" match="reverseRole" replace="reverseRole&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="reviewed" replace="reviewed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="won" replace="won&#x0009;&#x0009;BIT" />
+
+            <!-- bonus needed for ETL -->
+            <replaceregexp flags="gm" file="${outfile}" match="sortOrder" replace="sortOrder&#x0009;&#x0009;INT" />
+
+            <!-- formatting -->
+            <replaceregexp flags="gm" file="${outfile}" match="^\s+" replace="" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="mapGlobalValueSet">
+        <attribute name="infile" description="Standard value set metadata file" />
+        <attribute name="outpath" description="Output path" />
+
+        <sequential>
+
+            <!-- get filename without extension -->
+            <ac:var unset="true" name="inbasename" />
+            <basename property="inbasename" file="@{infile}" suffix="globalValueSet" />
+            <ac:var unset="true" name="outfile" />
+            <property name="outfile" value="@{outpath}/${inbasename}.tsv" />
+
+            <!-- copy lookups and sanitize -->
+            <copy file="@{infile}" tofile="${outfile}" overwrite="true" />
+            <replaceregexp flags="s" file="${outfile}" match=".*&lt;customValue&gt;" replace="" />
+            <replaceregexp flags="s" file="${outfile}" match="&lt;/customValue&gt;.*" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match="&gt;.*" replace="" />
+            <replaceregexp flags="gm" file="${outfile}" match="&lt;" replace="" />
+
+            <!-- remove any CustomValue properties -->
+            <replaceregexp flags="m" file="${outfile}" match="fullName" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="color" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="default" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="description" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="isActive" replace="" />
+            <replaceregexp flags="m" file="${outfile}" match="label" replace="" />
+
+            <!-- explicitly add all CustomValue properties -->
+            <echo file="${outfile}" append="true" message="${line.separator}fullName" />
+            <echo file="${outfile}" append="true" message="${line.separator}color" />
+            <echo file="${outfile}" append="true" message="${line.separator}default" />
+            <echo file="${outfile}" append="true" message="${line.separator}description" />
+            <echo file="${outfile}" append="true" message="${line.separator}isActive" />
+            <echo file="${outfile}" append="true" message="${line.separator}label" />
+
+
+            <echo file="${outfile}" append="true" message="${line.separator}sortOrder" />
+
+            <!-- convert to tsv -->
+            <replaceregexp flags="gm" file="${outfile}" match="fullName" replace="fullName&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="color" replace="color&#x0009;&#x0009;VARCHAR(7)" />
+            <replaceregexp flags="gm" file="${outfile}" match="default" replace="default&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="description" replace="description&#x0009;&#x0009;NVARCHAR(255)" />
+            <replaceregexp flags="gm" file="${outfile}" match="isActive" replace="isActive&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="label" replace="label&#x0009;&#x0009;NVARCHAR(255)" />
+            <replaceregexp flags="gm" file="${outfile}" match="allowEmail" replace="allowEmail&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="closed" replace="closed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="converted" replace="converted&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="cssExposed" replace="cssExposed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="forecastCategory" replace="forecastCategory&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="highPriority" replace="highPriority&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="probability" replace="probability&#x0009;&#x0009;INT" />
+            <replaceregexp flags="gm" file="${outfile}" match="reverseRole" replace="reverseRole&#x0009;&#x0009;VARCHAR(40)" />
+            <replaceregexp flags="gm" file="${outfile}" match="reviewed" replace="reviewed&#x0009;&#x0009;BIT" />
+            <replaceregexp flags="gm" file="${outfile}" match="won" replace="won&#x0009;&#x0009;BIT" />
+
+            <!-- bonus needed for ETL -->
+            <replaceregexp flags="gm" file="${outfile}" match="sortOrder" replace="sortOrder&#x0009;&#x0009;INT" />
+
+            <!-- formatting -->
+            <replaceregexp flags="gm" file="${outfile}" match="^\s+" replace="" />
+        </sequential>
+    </macrodef>
+
+</project>

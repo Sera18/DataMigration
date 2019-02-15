@@ -1,0 +1,635 @@
+<!--
+ ! SDL tools
+ !-->
+<project xmlns:if="ant:if" xmlns:unless="ant:unless" xmlns:ac="antlib:net.sf.antcontrib" xmlns:ml="antlib:org.missinglink">
+
+    <macrodef name="sdl-create">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.username}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.password}\2" />
+            <!-- run! -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=create" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- unpopulate database credentials -->
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-modify">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.username}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.password}\2" />
+            <!-- run! -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=modify" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- unpopulate database credentials -->
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-associate">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.username}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.password}\2" />
+            <!-- grab externalIdField from sdl -->
+            <loadfile property="codegen.@{entity}.associationTable" srcFile="dev/migration/records/@{entity}/associate.sdl">
+                <filterchain>
+                    <tokenfilter><replaceregex flags="gm" pattern="Id=Id" replace="[Id] NVARCHAR(255)," /></tokenfilter>
+                    <tokenfilter><replaceregex flags="gm" pattern="(.*)=.*" replace="[\1] NVARCHAR(255)" /></tokenfilter>
+                </filterchain>
+            </loadfile>
+            <sql classpath="lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" driver="com.microsoft.sqlserver.jdbc.SQLServerDriver" url="jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}" userid="${msql.username}" password="${msql.password}" print="yes">
+                DROP TABLE IF EXISTS [${msql.database}].[dbo].[@{entity}.association];
+                CREATE TABLE [${msql.database}].[dbo].[@{entity}.association] (${codegen.@{entity}.associationTable});
+            </sql>
+            <!-- run! -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=associate" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- unpopulate database credentials -->
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-deleteData">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.username}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.password}\2" />
+            <!-- run! -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=deleteData" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- unpopulate database credentials -->
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-truncate">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <!-- dump all ids -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=pretruncate" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- then destroy -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=truncate" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-fixError">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=fixError" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sdl-sendEmail">
+        <attribute name="subject" description="subject" />
+        <attribute name="message" description="message" />
+        <attribute name="attachment" description="attachment" />
+        <sequential>
+            <property file="mail.properties" />
+            <mail mailhost="${mail.host}"
+                mailport="${mail.port}"
+                subject="@{subject}"
+                user="${mail.user}"
+                password="${mail.password}"
+                ssl="false"
+                enableStartTLS="true"
+                from="${mail.user}"
+                tolist="${mail.tomails}"
+                cclist="${mail.ccmails}">
+                <message>@{message}</message>
+                <attachments>
+                    <fileset dir="..">
+                        <include name= "@{attachment}"/>
+                    </fileset>
+                </attachments>
+            </mail>
+        </sequential>
+    </macrodef>
+
+     <macrodef name="sdl-pullback">
+        <attribute name="entity" description="The Salesforce object used in the operation." />
+        <sequential>
+            <!-- populate config.properties and database credentials -->
+            <echo file="dev/migration/records/@{entity}/config.properties">sfdc.endpoint=${sfdc.serverUrl}${line.separator}sfdcInternal.sessionId=${sfdc.sessionId}</echo>
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.username}\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1${msql.password}\2" />
+            <!-- grab externalIdField from sdl  -->
+            <sql classpath="lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" driver="com.microsoft.sqlserver.jdbc.SQLServerDriver" url="jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}" userid="${msql.username}" password="${msql.password}" print="yes">
+                DROP TABLE IF EXISTS [${msql.database}].[dbo].Account;
+                CREATE TABLE [${msql.database}].[dbo].Account(
+                    Id NVARCHAR(255),
+                    Name NVARCHAR(255),
+                    Phone NVARCHAR(255),
+                    External_ID__c NVARCHAR(255)
+                );
+            </sql>
+           
+            <!-- run! -->
+            <java fork="true" classname="com.salesforce.dataloader.process.ProcessRunner" classpath="lib/dataloader-40.0.0/dataloader-40.0.0-uber.jar:lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" failonerror="true">
+                <sysproperty key="salesforce.config.dir" value="dev/migration/records/@{entity}" />
+                <arg line="process.name=pullback" />
+                <jvmarg value="-Duser.timezone=GMT" />
+            </java>
+            <!-- unpopulate database credentials -->
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;url&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;username&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+            <replaceregexp flags="gm" file="dev/migration/records/@{entity}/database-conf.xml" match="(name=&quot;password&quot; value=&quot;)[^&quot;]*(&quot;)" replace="\1\2" />
+        </sequential>
+    </macrodef>
+    
+    <macrodef name="sdl-codegen">
+
+        <attribute name="entity" description="Which salesforce standard object or custom object?" />
+        <attribute name="externalIdField" description="Which field is the ODIN key for upserts?" />
+        <attribute name="orderByField" description="Which field shall we sort by to avoid lock exceptions?" />
+        <element name="patches" optional="true" implicit="false" description="Patches to apply to code generated output." />
+
+        <sequential>
+
+            <mkdir dir="dev/migration/records/@{entity}" />
+
+            <sql output="dev/migration/records/@{entity}/create.sdl" classpath="lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar" driver="com.microsoft.sqlserver.jdbc.SQLServerDriver" url="jdbc:sqlserver://${msql.host}:${msql.port};databaseName=${msql.database}" userid="${msql.username}" password="${msql.password}" print="yes" showheaders="no" showtrailers="no">
+                USE ${msql.database};
+                SELECT CONCAT(COLUMN_NAME, '=', REPLACE(COLUMN_NAME, '.', '\:'))
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = '@{entity}.object'
+                AND COLUMN_NAME != 'Id'
+                AND COLUMN_NAME != 'SystemModstamp'
+                AND COLUMN_NAME != 'LegacyUpdateDate_c'
+                AND COLUMN_NAME != 'OdinUpdateDate__c'
+                AND COLUMN_NAME != 'ToBeMigrated'
+                AND COLUMN_NAME != 'External_SF_ID'
+                AND COLUMN_NAME != 'Program_Version__c'
+                AND COLUMN_NAME != 'IsConstraintViolated'
+                ORDER BY COLUMN_NAME ASC;
+            </sql>
+
+            <!-- generate mapping SDL for create -->
+            <replaceregexp file="dev/migration/records/@{entity}/create.sdl" flags="gm" match="\s$" replace="" />
+
+            <!-- generate mapping SDL for modify -->
+            <echo file="dev/migration/records/@{entity}/modify.sdl">Id=Id</echo>
+
+            <!-- generate mapping SDL for associate -->
+            <echo file="dev/migration/records/@{entity}/associate.sdl">Id=Id${line.separator}@{externalIdField}=@{externalIdField}</echo>
+
+            <!-- generate mapping SDL for pullback -->
+            <echo file="dev/migration/records/@{entity}/pullback.sdl">Id=Id</echo>
+
+            <!-- generate mapping SDL for truncate -->
+            <echo file="dev/migration/records/@{entity}/truncate.sdl">Id=Id</echo>
+
+
+            <!-- prepare SQL string -->
+            <loadfile property="codegen.@{entity}.sqlString" srcFile="dev/migration/records/@{entity}/create.sdl">
+                <filterchain>
+                    <tokenfilter><replaceregex flags="gm" pattern="(.*)=.*" replace="[@{entity}.object].[\1]," /></tokenfilter>
+                </filterchain>
+            </loadfile>
+
+            <!-- prepare column names -->
+            <loadfile property="codegen.@{entity}.columnNames" srcFile="dev/migration/records/@{entity}/create.sdl">
+                <filterchain>
+                    <tokenfilter><replaceregex flags="gm" pattern="(.*)=.*" replace="&lt;value&gt;\1&lt;/value&gt;" /></tokenfilter>
+                </filterchain>
+            </loadfile>
+
+            <!-- generate database-conf.xml -->
+            <echo file="dev/migration/records/@{entity}/database-conf.xml" message="&lt;!DOCTYPE beans PUBLIC &quot;-//SPRING//DTD BEAN//EN&quot; &quot;http://www.springframework.org/dtd/spring-beans.dtd&quot;&gt;${line.separator}" />
+            <echoxml file="dev/migration/records/@{entity}/database-conf.xml" append="true">
+                <beans>
+                    <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+                        <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+                        <property name="url" value="" />
+                        <property name="username" value="" />
+                        <property name="password" value="" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+                        <property name="dataSource" ref="msql" />
+                        <property name="sqlConfig" ref="createSqlConfig" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+                        <property name="dataSource" ref="msql" />
+                        <property name="sqlConfig" ref="modifySqlConfig" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+                        <property name="dataSource" ref="msql" />
+                        <property name="sqlConfig" ref="associateSqlConfig" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+                        <property name="dataSource" ref="msql" />
+                        <property name="sqlConfig" ref="pullbackSqlConfig" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+                        <property name="dataSource" ref="msql" />
+                        <property name="sqlConfig" ref="truncateSqlConfig" />
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+                        <property name="sqlString">
+                            <value>
+USE [${msql.database}]
+SELECT
+${codegen.@{entity}.sqlString}
+FROM [@{entity}.object]
+ORDER BY @{orderByField}
+                            </value>
+                        </property>
+                        <property name="columnNames">
+                            <list>
+${codegen.@{entity}.columnNames}
+                            </list>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+                        <property name="sqlString">
+                            <value>
+USE [${msql.database}]
+SELECT
+Id AS Id
+FROM [@{entity}.association]
+LEFT JOIN [@{entity}.object] ON [@{entity}.object].[@{externalIdField}] = [@{entity}.association].[@{externalIdField}]
+                            </value>
+                        </property>
+                        <property name="columnNames">
+                            <list><value>Id</value></list>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+                        <property name="sqlString">
+                            <value>
+USE [${msql.database}] INSERT INTO [@{entity}.association]
+(Id,@{externalIdField})
+VALUES (@Id@,@@@{externalIdField}@)
+                            </value>
+                        </property>
+                        <property name="sqlParams">
+                            <map>
+                                <entry key="Id" value="java.lang.String" />
+                                <entry key="@{externalIdField}" value="java.lang.String" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+                        <property name="sqlString">
+                            <value>
+USE [${msql.database}] INSERT INTO [@{entity}]
+(Id)
+VALUES (@Id@)
+                            </value>
+                        </property>
+                        <property name="sqlParams">
+                            <map>
+                                <entry key="Id" value="java.lang.String" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+                        <property name="sqlString">
+<value>
+    SELECT Id
+    FROM [@{entity}.association]
+</value>
+                        </property>
+                        <property name="columnNames">
+                          <list>
+                            <value>Id</value>
+                          </list>
+                        </property>
+                    </bean>
+                </beans>
+            </echoxml>
+            <replaceregexp flags="gs" file="dev/migration/records/@{entity}/database-conf.xml" match=",\s+FROM" replace="${line.separator}FROM" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&amp;lt;" value="&lt;" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&amp;gt;" value="&gt;" />
+
+            <!-- generate process-conf.xml -->
+            <echo file="dev/migration/records/@{entity}/process-conf.xml" message="&lt;!DOCTYPE beans PUBLIC &quot;-//SPRING//DTD BEAN//EN&quot; &quot;http://www.springframework.org/dtd/spring-beans.dtd&quot;&gt;${line.separator}" />
+            <echoxml file="dev/migration/records/@{entity}/process-conf.xml" append="true">
+                <beans>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="create" singleton="false">
+                        <property name="name" value="create" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="createDatabaseConfig" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/create.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/create.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/create.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/create.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="upsert" />
+                                <entry key="sfdc.externalIdField" value="@{externalIdField}" />
+                                <!-- use UPSERT, idempotent -->
+
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="databaseRead" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/>
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="modify" singleton="false">
+                        <property name="name" value="modify" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="modifyDatabaseConfig" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/modify.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/modify.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/modify.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/modify.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="update" />
+                                <entry key="sfdc.externalIdField" value="@{externalIdField}" />
+
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="databaseRead" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/>
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="associate" singleton="false">
+                        <property name="name" value="associate" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="associateDatabaseConfig" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/associate.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/associate.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/associate.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/associate.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="extract" />
+                                <entry key="sfdc.extractionSOQL" value="SELECT Id, @{externalIdField} FROM @{entity} WHERE @{externalIdField} != null" />
+
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="databaseWrite" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/>
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="pullback" singleton="false">
+                        <property name="name" value="pullback" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="pullbackDatabaseConfig" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/pullback.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/pullback.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/pullback.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/pullback.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="extract" />
+                                <entry key="sfdc.extractionSOQL" value="SELECT Id FROM @{entity}" />
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="databaseWrite" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/>
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="pretruncate" singleton="false">
+                        <property name="name" value="pretruncate" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="dev/migration/records/@{entity}/truncate.csv" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/truncate.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/truncate.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/truncate.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/truncate.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="extract" />
+                                <entry key="sfdc.extractionSOQL" value="SELECT Id FROM @{entity} WHERE @{externalIdField} != null" />
+
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="csvWrite" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/>
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="truncate" singleton="false">
+                        <property name="name" value="truncate" />
+                        <property name="configOverrideMap">
+                            <map>
+                                <entry key="dataAccess.name" value="dev/migration/records/@{entity}/truncate.csv" />
+                                <entry key="sfdc.entity" value="@{entity}" />
+                                <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/truncate.log" />
+                                <entry key="process.mappingFile" value="dev/migration/records/@{entity}/truncate.sdl" />
+                                <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/truncate.success" />
+                                <entry key="process.outputError" value="dev/migration/records/@{entity}/truncate.error" />
+                                <entry key="process.enableNoFieldValWarning" value="false" />
+                                <entry key="process.operation" value="hard_delete" />
+
+                                <entry key="sfdc.timezone" value="GMT" />
+                                <entry key="sfdcInternal" value="true" />
+                                <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                                <entry key="sfdc.timeoutSecs" value="540" />
+                                <entry key="sfdc.loadBatchSize" value="10000" />
+                                <entry key="sfdc.useBulkApi" value="true" />
+                                <entry key="dataAccess.type" value="csvRead" />
+                                <entry key="dataAccess.writeBatchSize" value="2000" />
+                                <entry key="dataAccess.readUTF8" value="true"/>
+                                <entry key="dataAccess.writeUTF8" value="true"/> 
+                                <entry key="sfdc.debugMessages" value="true" />
+                                <entry key="sfdc.bulkApiSerialMode" value="false" />
+                                <entry key="process.enableLastRunOutput" value="false" />
+                            </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="deleteData" singleton="false">
+                        <property name="name" value="deleteData" />
+                        <property name="configOverrideMap">
+                          <map>
+                            <entry key="dataAccess.name" value="truncateDatabaseConfig" />
+                            <entry key="sfdc.entity" value="@{entity}" />
+                            <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/deleteData.log" />
+                            <entry key="process.mappingFile" value="dev/migration/records/@{entity}/truncate.sdl" />
+                            <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/deleteData.success" />
+                            <entry key="process.outputError" value="dev/migration/records/@{entity}/deleteData.error" />
+                            <entry key="process.enableNoFieldValWarning" value="false" />
+                            <entry key="process.operation" value="delete" />
+                            <entry key="sfdc.timezone" value="GMT" />
+                            <entry key="sfdcInternal" value="true" />
+                            <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                            <entry key="sfdc.timeoutSecs" value="540" />
+                            <entry key="sfdc.loadBatchSize" value="10000" />
+                            <entry key="sfdc.useBulkApi" value="true" />
+                            <entry key="dataAccess.type" value="databaseRead" />
+                            <entry key="dataAccess.writeBatchSize" value="2000" />
+                            <entry key="dataAccess.readUTF8" value="true" />
+                            <entry key="dataAccess.writeUTF8" value="true" />
+                            <entry key="sfdc.debugMessages" value="true" />
+                            <entry key="sfdc.bulkApiSerialMode" value="false" />
+                            <entry key="process.enableLastRunOutput" value="false" />
+                          </map>
+                        </property>
+                    </bean>
+                    <bean class="com.salesforce.dataloader.process.ProcessRunner" id="fixError" singleton="false">
+                        <property name="name" value="fixError" />
+                        <property name="configOverrideMap">
+                          <map>
+                            <entry key="dataAccess.name" value="dev/migration/records/@{entity}/FixErrors.csv" />
+                            <entry key="sfdc.entity" value="@{entity}" />
+                            <entry key="sfdc.debugMessagesFile" value="dev/migration/records/@{entity}/fixError.log" />
+                            <entry key="process.mappingFile" value="dev/migration/records/@{entity}/create.sdl" />
+                            <entry key="process.outputSuccess" value="dev/migration/records/@{entity}/fixError.success" />
+                            <entry key="process.outputError" value="dev/migration/records/@{entity}/fixError.error" />
+                            <entry key="process.enableNoFieldValWarning" value="false" />
+                            <entry key="process.operation" value="upsert" />
+                            <entry key="sfdc.externalIdField" value="@{externalIdField}" />
+                            <entry key="sfdc.timezone" value="GMT" />
+                            <entry key="sfdcInternal" value="true" />
+                            <entry key="sfdcInternal.isSessionIdLogin" value="true" />
+                            <entry key="sfdc.timeoutSecs" value="540" />
+                            <entry key="sfdc.loadBatchSize" value="10000" />
+                            <entry key="sfdc.useBulkApi" value="true" />
+                            <entry key="dataAccess.type" value="csvRead" />
+                            <entry key="dataAccess.writeBatchSize" value="2000" />
+                            <entry key="dataAccess.readUTF8" value="true"/>
+                            <entry key="dataAccess.writeUTF8" value="true"/>
+                            <entry key="sfdc.debugMessages" value="true" />
+                            <entry key="sfdc.bulkApiSerialMode" value="false" />
+                            <entry key="process.enableLastRunOutput" value="false" />
+                          </map>
+                        </property>
+                    </bean>
+                </beans>
+            </echoxml>
+
+            <!-- resolve WhoId from association table -->
+            <replace file="dev/migration/records/@{entity}/create.sdl" token="Who.OdinEnquiryKey__c=Who\:OdinEnquiryKey__c" value="WhoId=WhoId" />
+            <replace file="dev/migration/records/@{entity}/modify.sdl" token="Who.OdinEnquiryKey__c=Who\:OdinEnquiryKey__c" value="WhoId=WhoId" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="[@{entity}.object].[Who.OdinEnquiryKey__c]" value="(SELECT [Id] FROM [Lead.association] WHERE [OdinEnquiryKey__c] = [Who.OdinEnquiryKey__c]) AS [WhoId]" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&lt;value&gt;Who.OdinEnquiryKey__c&lt;/value&gt;" value="&lt;value&gt;WhoId&lt;/value&gt;" />
+
+            <!-- resolve WhatId from association table -->
+            <replace file="dev/migration/records/@{entity}/create.sdl" token="What.OdinCustomerKey__c=What\:OdinCustomerKey__c" value="WhatId=WhatId" />
+            <replace file="dev/migration/records/@{entity}/modify.sdl" token="What.OdinCustomerKey__c=What\:OdinCustomerKey__c" value="WhatId=WhatId" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="[@{entity}.object].[What.OdinCustomerKey__c]" value="(SELECT [Id] FROM [Account.association] WHERE [OdinCustomerKey__c] = [What.OdinCustomerKey__c]) AS [WhatId]" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&lt;value&gt;What.OdinCustomerKey__c&lt;/value&gt;" value="&lt;value&gt;WhatId&lt;/value&gt;" />
+
+            <!-- resolve OwnerId from association table -->
+            <replace file="dev/migration/records/@{entity}/create.sdl" token="Owner.Ext_Id__c=Owner\:Ext_Id__c" value="OwnerId=OwnerId" />
+            <replace file="dev/migration/records/@{entity}/modify.sdl" token="Owner.Ext_Id__c=Owner\:Ext_Id__c" value="OwnerId=OwnerId" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="[@{entity}.object].[Owner.Ext_Id__c]" value="(SELECT [Id] FROM [User.association] WHERE [Ext_Id__c] = [Owner.Ext_Id__c]) AS [OwnerId]" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&lt;value&gt;Owner.Ext_Id__c&lt;/value&gt;" value="&lt;value&gt;OwnerId&lt;/value&gt;" />
+
+            <!-- resolve RecordTypeId from association table -->
+            <replace file="dev/migration/records/@{entity}/create.sdl" token="RecordType.DeveloperName=RecordType\:DeveloperName" value="RecordTypeId=RecordTypeId" />
+            <replace file="dev/migration/records/@{entity}/modify.sdl" token="RecordType.DeveloperName=RecordType\:DeveloperName" value="RecordTypeId=RecordTypeId" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="[@{entity}.object].[RecordType.DeveloperName]" value="(SELECT [Id] FROM [RecordType.association] WHERE [DeveloperName] = [RecordType.DeveloperName]) AS [RecordTypeId]" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&lt;value&gt;RecordType.DeveloperName&lt;/value&gt;" value="&lt;value&gt;RecordTypeId&lt;/value&gt;" />
+
+            <!-- resolve ProfileId from association table -->
+            <replace file="dev/migration/records/@{entity}/create.sdl" token="Profile.Name=Profile\:Name" value="ProfileId=ProfileId" />
+            <replace file="dev/migration/records/@{entity}/modify.sdl" token="Profile.Name=Profile\:Name" value="ProfileId=ProfileId" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="[@{entity}.object].[Profile.Name]" value="(SELECT [Id] FROM [Profile.association] WHERE [Name] = [Profile.Name]) AS [ProfileId]" />
+            <replace file="dev/migration/records/@{entity}/database-conf.xml" token="&lt;value&gt;Profile.Name&lt;/value&gt;" value="&lt;value&gt;ProfileId&lt;/value&gt;" />
+
+            <patches />
+
+        </sequential>
+
+    </macrodef>
+
+</project>

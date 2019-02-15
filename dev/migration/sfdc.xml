@@ -1,0 +1,571 @@
+<!--
+ ! SFDC tools
+ !-->
+<project xmlns:if="ant:if" xmlns:unless="ant:unless" xmlns:sf="antlib:com.salesforce" xmlns:ac="antlib:net.sf.antcontrib" xmlns:ml="antlib:org.missinglink">
+
+    <taskdef uri="antlib:com.salesforce" classpath="lib/salesforce_ant_40.0/ant-salesforce.jar" />
+    <taskdef uri="antlib:net.sf.antcontrib" classpath="lib/ant-contrib-1.0b3/ant-contrib-1.0b3.jar"/>
+    <taskdef uri="antlib:org.missinglink" classpath="lib/ml-ant-http-1.1.3/ml-ant-http-1.1.3.jar" />
+
+    <macrodef name="sfdc-login" description="Login to salesforce and populate serverUrl / sessionId">
+
+        <attribute name="username" description="Salesforce username" />
+        <attribute name="password" description="Salesforce password" />
+        <attribute name="loginurl" description="Salesforce loginurl" />
+        <attribute name="quiet" default="" description="Silence confirmation prompts?" />
+        <attribute name="sessionIdProperty" default="sfdc.sessionId" description="Assign session ID to this property" />
+        <attribute name="serverUrlProperty" default="sfdc.serverUrl" description="Assign server URL to this property" />
+
+        <sequential>
+
+            <!-- prompt user to confirm -->
+            <!-- <input unless:true="@{quiet}" message="This task logs into @{loginurl} as the following user. Are you sure?" validargs="@{username}" /> -->
+
+            <!-- stage request -->
+            <echoxml file="temp.login" namespacePolicy="all">
+                <Envelope xmlns='http://schemas.xmlsoap.org/soap/envelope/'>
+                    <Body>
+                        <login xmlns='urn:enterprise.soap.sforce.com'>
+                            <username>@{username}</username>
+                            <password>@{password}</password>
+                        </login>
+                    </Body>
+                </Envelope>
+            </echoxml>
+
+            <!-- login via Enterprise SOAP API -->
+            <ml:http url="@{loginurl}/services/Soap/c/40.0" method="POST" expected="200" outfile="temp.loginResponse">
+                <headers>
+                    <header name="Content-Type" value="text/xml"/>
+                    <header name="SOAPAction" value="login"/>
+                </headers>
+                <entity file="temp.login" />
+            </ml:http>
+
+            <!-- Parse response into properties -->
+            <ac:var name="sfdc.loginResponse" unset="true" />
+            <loadfile property="sfdc.loginResponse" srcFile="temp.loginResponse" />
+            <ac:propertyregex property="@{sessionIdProperty}" override="true" input="${sfdc.loginResponse}" regexp=".*&lt;sessionId&gt;([^&lt;]+)&lt;/sessionId&gt;.*" select="\1" />
+            <ac:propertyregex property="@{serverUrlProperty}" override="true" input="${sfdc.loginResponse}" regexp=".*&lt;serverUrl&gt;(https://[^/]+)/.*&lt;/serverUrl&gt;.*" select="\1" />
+
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sfdc-execanon" description="Invoke ExecuteAnonymous using Salesforce Tooling API">
+
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce server URL"/>
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID"/>
+        <text name="apexcode" description="Apex code to be executed" />
+
+        <sequential>
+
+            <!-- display code -->
+            <echo message="@{apexcode}" />
+
+            <!-- stage request -->
+            <echoxml file="temp.executeAnonymous" namespacePolicy="all">
+                <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+                    <Header>
+                        <SessionHeader xmlns="http://soap.sforce.com/2006/08/apex">
+                            <sessionId>@{sessionId}</sessionId>
+                        </SessionHeader>
+                    </Header>
+                    <Body>
+                        <executeAnonymous xmlns="http://soap.sforce.com/2006/08/apex">
+                            <String>@{apexcode}</String>
+                        </executeAnonymous>
+                    </Body>
+                </Envelope>
+            </echoxml>
+
+            <!-- execute via Apex SOAP API -->
+            <ml:http url="@{serverUrl}/services/Soap/s/40.0" method="POST" outfile="temp.executeAnonymousResponse" printrequest="true">
+                <headers>
+                    <header name="Content-Type" value="text/xml" />
+                    <header name="SOAPAction" value="&quot;&quot;" />
+                </headers>
+                <entity file="temp.executeAnonymous" />
+            </ml:http>
+
+            <!-- Parse response into properties -->
+            <ac:var name="sfdc.executeAnonymousResponse" unset="true" />
+            <loadfile property="sfdc.executeAnonymousResponse" srcFile="temp.executeAnonymousResponse" />
+            <ac:propertyregex property="sfdc.exceptionMessage" override="true" input="${sfdc.executeAnonymousResponse}" regexp=".*&lt;exceptionMessage&gt;([^&lt;]+)&lt;/exceptionMessage&gt;.*" select="\1" />
+            <ac:propertyregex property="sfdc.exceptionStackTrace" override="true" input="${sfdc.executeAnonymousResponse}" regexp=".*&lt;exceptionStackTrace&gt;([^&lt;]+)&lt;/exceptionStackTrace&gt;.*" select="\1" />
+
+            <!-- Fail on error -->
+            <fail message="Execute Anonymous failed: ${line.separator}@{apexcode}${line.separator}${sfdc.exceptionMessage}${line.separator}${sfdc.exceptionStackTrace}">
+                <condition>
+                    <matches pattern="&lt;success&gt;false&lt;/success&gt;" string="${sfdc.executeAnonymousResponse}" />
+                </condition>
+            </fail>
+
+        </sequential>
+
+    </macrodef>
+
+    <macrodef name="sfdc-wsdl" description="Dump all web service definitions">
+
+        <attribute name="path" description="Output file path" />
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce server URL"/>
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID"/>
+
+        <sequential>
+            <ml:http outfile="@{path}/enterprise.wsdl" url="@{serverUrl}/soap/wsdl.jsp?type=*" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/partner.wsdl" url="@{serverUrl}/soap/wsdl.jsp" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/apex.wsdl" url="@{serverUrl}/services/wsdl/apex" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/metadata.wsdl" url="@{serverUrl}/services/wsdl/metadata" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/tooling.wsdl" url="@{serverUrl}/services/wsdl/tooling" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/tooling-enum.wsdl" url="@{serverUrl}/services/wsdl/tooling?enumStyle=ALL_STRONG" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+            <ml:http outfile="@{path}/authentication.wsdl" url="@{serverUrl}/soap/AuthenticationService.jsp" method="GET">
+                <headers>
+                    <header name="Cookie" value="sid=@{sessionId}"/>
+                </headers>
+            </ml:http>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="sfdc-snapshot" description="Describe and retrieve all components of all metadata types">
+
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID" />
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce Server URL" />
+        <attribute name="outpath" default="temp/snapshot" description="Output directory" />
+        <attribute name="quiet" default="" description="Silence confirmation prompts?" />
+
+        <sequential>
+
+            <!-- prompt user to confirm -->
+            <input unless:true="@{quiet}" message="This task overwrites the following directory. Are you sure?" validargs="@{outpath}" />
+
+            <!-- gets list of all metadata types -->
+            <sf:describeMetadata
+                sessionId="@{sessionId}"
+                serverUrl="@{serverUrl}"
+                apiVersion="40.0"
+                resultFilePath="temp.describeMetadata"
+            />
+
+            <!-- clean metadata types into newline-delimited listing -->
+            <replaceregexp file="temp.describeMetadata" flags="gs" match="[*]+[^*]+XMLName: ([A-Za-z0-9]+)[^*]+ChildObjects: ([A-Za-z0-9,]*)[*]+" replace="\1,\2" />
+            <replaceregexp file="temp.describeMetadata" flags="gs" match="," replace="${line.separator}" />
+            <replaceregexp file="temp.describeMetadata" flags="gs" match="${line.separator}${line.separator}" replace="${line.separator}" />
+
+            <!-- discard Data.com, unalphabetized metadata causes noisy deltas -->
+            <replace file="temp.describeMetadata" token="CleanDataService${line.separator}" value="" />
+
+            <!-- read newline-delimited listing into list property -->
+            <loadfile property="types" srcfile="temp.describeMetadata" />
+
+            <!-- create empty package.xml -->
+            <echo file="temp.xml" />
+
+            <!-- open package definition -->
+            <echo file="temp.xml" message="&lt;Package xmlns=&quot;http://soap.sforce.com/2006/04/metadata&quot;&gt;${line.separator}    &lt;version&gt;40.0&lt;/version&gt;${line.separator}" />
+
+            <!-- shim standard value sets -->
+            <echo file="temp.xml" append="true"><![CDATA[
+            <types>
+                <name>StandardValueSet</name>
+                <members>AccountContactMultiRoles</members>
+                <members>AccountContactRole</members>
+                <members>AccountOwnership</members>
+                <members>AccountRating</members>
+                <members>AccountType</members>
+                <members>AddressCountryCode</members>
+                <members>AddressStateCode</members>
+                <members>AssetStatus</members>
+                <members>CampaignMemberStatus</members>
+                <members>CampaignStatus</members>
+                <members>CampaignType</members>
+                <members>CaseContactRole</members>
+                <members>CaseOrigin</members>
+                <members>CasePriority</members>
+                <members>CaseReason</members>
+                <members>CaseStatus</members>
+                <members>CaseType</members>
+                <members>ContactRole</members>
+                <members>ContractContactRole</members>
+                <members>ContractStatus</members>
+                <members>EntitlementType</members>
+                <members>EventSubject</members>
+                <members>EventType</members>
+                <members>FiscalYearPeriodName</members>
+                <members>FiscalYearPeriodPrefix</members>
+                <members>FiscalYearQuarterName</members>
+                <members>FiscalYearQuarterPrefix</members>
+                <members>IdeaCategory</members>
+                <members>IdeaMultiCategory</members>
+                <members>IdeaStatus</members>
+                <members>IdeaThemeStatus</members>
+                <members>Industry</members>
+                <members>InvoiceStatus</members>
+                <members>LeadSource</members>
+                <members>LeadStatus</members>
+                <members>OpportunityCompetitor</members>
+                <members>OpportunityStage</members>
+                <members>OpportunityType</members>
+                <members>OrderStatus</members>
+                <members>OrderType</members>
+                <members>PartnerRole</members>
+                <members>Product2Family</members>
+                <members>QuestionOrigin</members>
+                <members>QuickTextCategory</members>
+                <members>QuickTextChannel</members>
+                <members>QuoteStatus</members>
+                <members>RoleInTerritory2</members>
+                <members>SalesTeamRole</members>
+                <members>Salutation</members>
+                <members>ServiceContractApprovalStatus</members>
+                <members>SocialPostClassification</members>
+                <members>SocialPostEngagementLevel</members>
+                <members>SocialPostReviewedStatus</members>
+                <members>SolutionStatus</members>
+                <members>TaskPriority</members>
+                <members>TaskStatus</members>
+                <members>TaskSubject</members>
+                <members>TaskType</members>
+                <members>WorkOrderLineItemStatus</members>
+                <members>WorkOrderPriority</members>
+                <members>WorkOrderStatus</members>
+            </types>
+            ]]></echo>
+
+            <!-- for each metadata type as a line -->
+            <ac:for param="type" list="${types}" delimiter="${line.separator}">
+                <sequential>
+
+                    <!-- explain -->
+                    <echo>Listing metadata: @{type}</echo>
+
+                    <!-- gets list of all components by type -->
+                    <sf:listMetadata
+                        sessionId="@{sessionId}"
+                        serverUrl="@{serverUrl}"
+                        metadataType="@{type}"
+                        apiVersion="40.0"
+                        resultFilePath="temp.list"
+                    />
+
+                    <!-- clean components into <member>-delimited listing -->
+                    <replaceregexp
+                        flags="gs"
+                        file="temp.list"
+                        match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+"
+                        replace="        &lt;members&gt;\1&lt;/members&gt;"
+                    />
+
+                    <!-- wrap components listing with <types> -->
+                    <replaceregexp
+                        flags="s"
+                        file="temp.list"
+                        match="(.*)"
+                        replace="    &lt;types&gt;${line.separator}\1        &lt;name&gt;@{type}&lt;/name&gt;${line.separator}    &lt;/types&gt;${line.separator}"
+                    />
+
+                    <!-- append to package definition -->
+                    <concat destfile="temp.xml" append="true">
+                        <filelist dir="." files="temp.list" />
+                    </concat>
+
+                    <!-- clean up in case there were no components -->
+                    <echo file="temp.list" />
+
+                </sequential>
+            </ac:for>
+            
+            <!-- remove invalid attributes -->
+            <replaceregexp flags="gs" file="temp.xml" match="&lt;members&gt;IdeaCategory&lt;/members&gt;" replace="" />
+            <!-- close package definition -->
+            <echo file="temp.xml" append="true" message="${line.separator}&lt;/Package&gt;" />
+
+            <!-- overwrite existing -->
+            <delete dir="@{outpath}" />
+            <mkdir dir="@{outpath}" />
+
+            <!-- retrieve all components of all types -->
+            <sf:retrieve
+                sessionId="@{sessionId}"
+                serverUrl="@{serverUrl}"
+                retrieveTarget="@{outpath}"
+                unpackaged="temp.xml"
+            />
+
+        </sequential>
+
+    </macrodef>
+
+    <macrodef name="sfdc-retrieve" description="Retrieve components of metadata types in package.xml">
+
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID" />
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce Server URL" />
+        <attribute name="outpath" default="temp/snapshot" description="Output directory" />
+        <attribute name="quiet" default="" description="Silence confirmation prompts?" />
+
+        <sequential>
+            <delete dir="@{outpath}" />
+            <mkdir dir="@{outpath}" />
+            <!-- retrieve components of metadata types in package.xml -->
+            <sf:retrieve
+                sessionId="@{sessionId}"
+                serverUrl="@{serverUrl}"
+                retrieveTarget="@{outpath}"
+                unpackaged="Package.xml"
+            />
+            <replaceregexp flags="gs" file="@{outpath}/layouts/Content_Map__c-Content Map Layout.layout" match="&lt;relatedLists&gt;.+&lt;/relatedLists&gt;" replace="" />
+            <echo file="@{outpath}/layouts/Content_Map__c-Content Map Layout.layout" append="true" message="&lt;relatedLists&gt;&lt;relatedList&gt;RelatedEntityHistoryList&lt;/relatedList&gt;&lt;/relatedLists&gt;" />
+            <replaceregexp file="@{outpath}/layouts/Content_Map__c-Content Map Layout.layout" flags="s" match="&lt;/Layout&gt;" replace="" />
+            <echo file="@{outpath}/layouts/Content_Map__c-Content Map Layout.layout" append="true" message="&lt;/Layout&gt;" />
+
+        </sequential>
+
+    </macrodef>
+
+    <macrodef name="sfdc-deploy" description="Deploy components of metadata types in package.xml">
+
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID" />
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce Server URL" />
+        <attribute name="outpath" default="temp/snapshot" description="Output directory" />
+        <attribute name="quiet" default="" description="Silence confirmation prompts?" />
+
+        <sequential>
+            
+            <!-- deploy components of metadata types in outpath -->
+            <sf:deploy
+                serverUrl="@{serverUrl}"
+                sessionId="@{sessionId}"
+                deployRoot="@{outpath}"
+                apiVersion="40.0"
+            />
+
+        </sequential>
+
+    </macrodef>
+
+    <macrodef name="sfdc-godmode" description="Grant user all field level securities and record type visibilities etc">
+
+        <attribute name="sessionId" default="${sfdc.sessionId}" description="Salesforce Session ID" />
+        <attribute name="serverUrl" default="${sfdc.serverUrl}" description="Salesforce Server URL" />
+        <attribute name="outpath" default="temp/snapshot" description="Working directory" />
+
+        <sequential>
+            <delete dir="@{outpath}" />
+            <mkdir dir="@{outpath}" />
+
+            <!-- remove permission set assignments -->
+            <sfdc-execanon>
+                Database.delete([
+                    SELECT Id
+                    FROM PermissionSetAssignment
+                    WHERE PermissionSet.Name = 'Migration'
+                ]);
+            </sfdc-execanon>
+
+            <!-- create package definition -->
+            <echoxml file="@{outpath}/package.xml" namespacePolicy="all">
+                <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+                    <version>40.0</version>
+                </Package>
+            </echoxml>
+
+            <!-- create destructive changes -->
+            <echoxml file="@{outpath}/destructiveChanges.xml" namespacePolicy="all">
+                <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+                    <types>
+                        <members>Migration</members>
+                        <name>PermissionSet</name>
+                    </types>
+                    <version>40.0</version>
+                </Package>
+            </echoxml>
+
+            <!-- remove existing godmode -->
+            <sf:deploy
+                serverUrl="@{serverUrl}"
+                sessionId="@{sessionId}"
+                deployRoot="@{outpath}"
+                apiVersion="40.0"
+                ignoreWarnings="true"
+            />
+
+            <delete dir="@{outpath}" />
+            <mkdir dir="@{outpath}" />
+
+            <!-- open package definition -->
+            <echoxml file="@{outpath}/package.xml" namespacePolicy="all">
+                <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+                    <version>40.0</version>
+                    <types>
+                        <members>Admin</members>
+                        <name>Profile</name>
+                    </types>
+                </Package>
+            </echoxml>
+
+            <!-- list all Custom Objects, clean components into <objectPermissions>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: CustomObject</echo>
+            <sf:listMetadata metadataType="CustomObject" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>CustomObject</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Custom Fields, clean components into <fieldPermissions>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: CustomField</echo>
+            <sf:listMetadata metadataType="CustomField" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>CustomField</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Custom Tabs, clean components into <tabVisibilities>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: CustomTab</echo>
+            <sf:listMetadata metadataType="CustomTab" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>CustomTab</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Apex Pages, clean components into <pageAccesses>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: ApexPage</echo>
+            <sf:listMetadata metadataType="ApexPage" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>ApexPage</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Apex Classes, clean components into <pageAccesses>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: ApexClass</echo>
+            <sf:listMetadata metadataType="ApexClass" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>ApexClass</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Record Types, clean components into <recordTypeVisibilities>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: RecordType</echo>
+            <sf:listMetadata metadataType="RecordType" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>RecordType</name></types>]]></footer>
+            </concat>
+
+            <!-- list all Custom Apps, clean components into <applicationVisibilities>-delimited listing, append to permission set definition -->
+            <echo>Listing metadata: CustomApplication</echo>
+            <sf:listMetadata metadataType="CustomApplication" apiVersion="40.0" resultFilePath="temp.list" sessionId="@{sessionId}" serverUrl="@{serverUrl}" />
+            <replaceregexp flags="gs" file="temp.list" match="[*]+[^*]+FullName/Id: ([^/]+)[^*]+[*]+" replace="&lt;members&gt;\1&lt;/members&gt;" />
+            <concat destfile="@{outpath}/package.xml" append="true">
+                <header><![CDATA[<types>]]></header>
+                <filelist dir="." files="temp.list" />
+                <footer><![CDATA[<name>CustomApplication</name></types>]]></footer>
+            </concat>
+
+            <!-- close package definition -->
+            <replaceregexp file="@{outpath}/package.xml" flags="s" match="&lt;/Package&gt;" replace="" />
+            <echo file="@{outpath}/package.xml" append="true" message="&lt;/Package&gt;" />
+
+            <!-- retrieve all permissionable components -->
+            <sf:retrieve
+                serverUrl="@{serverUrl}"
+                sessionId="@{sessionId}"
+                retrieveTarget="@{outpath}"
+                unpackaged="@{outpath}/package.xml"
+            />
+
+            <!-- transform Profile into PermissionSet -->
+            <loadfile property="godmode" srcFile="@{outpath}/profiles/Admin.profile" />
+            <delete dir="@{outpath}" />
+            <mkdir dir="@{outpath}/permissionsets" />
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" message="${godmode}" />
+
+            <!-- remove invalid attributes -->
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;loginIpRanges&gt;.+&lt;/loginIpRanges&gt;" replace="" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;custom&gt;[^&lt;]+&lt;/custom&gt;" replace="" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;default&gt;[^&lt;]+&lt;/default&gt;" replace="" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;userPermissions&gt;.+&lt;/userPermissions&gt;" replace="" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;userLicense&gt;[^&lt;]+&lt;/userLicense&gt;" replace="" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;personAccountDefault&gt;[^&lt;]+&lt;/personAccountDefault&gt;" replace="" />
+
+            <!-- change analogous attributes -->
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;visible&gt;[^&lt;]+&lt;/visible&gt;" replace="&lt;visible&gt;true&lt;/visible&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;readable&gt;[^&lt;]+&lt;/readable&gt;" replace="&lt;readable&gt;true&lt;/readable&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;editable&gt;[^&lt;]+&lt;/editable&gt;" replace="&lt;editable&gt;true&lt;/editable&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;enabled&gt;[^&lt;]+&lt;/enabled&gt;" replace="&lt;enabled&gt;true&lt;/enabled&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;tabVisibilities&gt;" replace="&lt;tabSettings&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;visibility&gt;[^&lt;]+&lt;/visibility&gt;" replace="&lt;visibility&gt;Visible&lt;/visibility&gt;" />
+            <replaceregexp flags="gs" file="@{outpath}/permissionsets/Migration.permissionset" match="&lt;/tabVisibilities&gt;" replace="&lt;/tabSettings&gt;" />
+
+            <!-- append missing attributes -->
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" append="true" message="&lt;label&gt;Migration&lt;/label&gt;" />
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" append="true" message="&lt;userPermissions&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;name&gt;CreateAuditFields&lt;/name&gt;&lt;/userPermissions&gt;" />
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" append="true" message="&lt;userPermissions&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;name&gt;BulkApiHardDelete&lt;/name&gt;&lt;/userPermissions&gt;" />
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" append="true" message="&lt;userPermissions&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;name&gt;UpdateWithInactiveOwner&lt;/name&gt;&lt;/userPermissions&gt;" />
+
+            <!-- re-close permission set definition -->
+            <replaceregexp file="@{outpath}/permissionsets/Migration.permissionset" flags="s" match="&lt;/Profile&gt;" replace="" />
+            <echo file="@{outpath}/permissionsets/Migration.permissionset" append="true" message="&lt;/Profile&gt;" />
+
+            <!-- stage package definition -->
+            <echoxml file="@{outpath}/package.xml" namespacePolicy="all">
+                <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+                    <types>
+                        <members>Migration</members>
+                        <name>PermissionSet</name>
+                    </types>
+                    <version>40.0</version>
+                </Package>
+            </echoxml>
+
+            <sf:deploy
+                serverUrl="@{serverUrl}"
+                sessionId="@{sessionId}"
+                deployRoot="@{outpath}"
+                apiVersion="40.0"
+            />
+
+            <sfdc-execanon>
+                Database.insert(new PermissionSetAssignment(
+                    AssigneeId = UserInfo.getUserId(),
+                    PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'Migration'].Id
+                ), false);
+            </sfdc-execanon>
+        </sequential>
+
+    </macrodef>
+
+</project>

@@ -1,0 +1,33 @@
+<!--
+ ! MSQL tools
+ !-->
+<project xmlns:if="ant:if" xmlns:unless="ant:unless" xmlns:ac="antlib:net.sf.antcontrib" xmlns:ml="antlib:org.missinglink">
+
+    <macrodef name="msql-login">
+
+        <!-- <attribute name="host" description="MS-SQL connection hostname, eg 10.160.130.69" /> -->
+        <attribute name="host" description="MS-SQL connection hostname, eg 10.160.129.249" />
+        <attribute name="port" description="MS-SQL connection port num, eg 1433" />
+        <attribute name="username" description="MS-SQL connection username, eg sfreader" />
+        <attribute name="password" description="MS-SQL connection password, eg Salesforce0" />
+        <attribute name="database" description="MS-SQL connection database, eg TR_SF_PROD" />
+
+        <sequential>
+            <!-- prompt user to confirm -->
+            <!-- <input message="This task logs into @{username}@@@{host}:@{port} on the following database. Are you sure?" validargs="@{database}" /> -->
+            <sql
+                classpath="lib/sqljdbc_4.2/enu/jre8/sqljdbc42.jar"
+                driver="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+                url="jdbc:sqlserver://@{host}:@{port};databaseName=@{database}"
+                userid="@{username}"
+                password="@{password}"
+            >SELECT NAME FROM SYS.DATABASES;</sql>
+            <property name="msql.host" value="@{host}" />
+            <property name="msql.port" value="@{port}" />
+            <property name="msql.username" value="@{username}" />
+            <property name="msql.password" value="@{password}" />
+            <property name="msql.database" value="@{database}" />
+        </sequential>
+    </macrodef>
+
+</project>

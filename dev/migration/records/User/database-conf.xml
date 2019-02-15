@@ -1,0 +1,97 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo]
+SELECT
+[User.object].[DB_Region__c],
+[User.object].[Ext_Id__c],
+[User.object].[Name],
+[User.object].[Phone]
+FROM [User.object]
+ORDER BY Id</value>
+    </property>
+    <property name="columnNames">
+      <list><value>DB_Region__c</value>
+<value>Ext_Id__c</value>
+<value>Name</value>
+<value>Phone</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo]
+SELECT
+Id AS Id
+FROM [User.association]
+LEFT JOIN [User.object] ON [User.object].[Ext_Id__c] = [User.association].[Ext_Id__c]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo] INSERT INTO [User.association]
+(Id,Ext_Id__c)
+VALUES (@Id@,@Ext_Id__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_Id__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [demo] INSERT INTO [User]
+(Id)
+VALUES (@Id@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>SELECT Id
+    FROM [User.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

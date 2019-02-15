@@ -1,0 +1,17 @@
+<!--
+ ! EF build tools
+ !-->
+<project default="usage" basedir=".">
+
+    <property file="build.properties"/>
+    <setproxy socksproxyhost="" /><!-- ignore proxy -->
+    <include file="dev/migration/migration.xml" as="migration" />
+
+    <target name="usage">
+        <java classname="org.apache.tools.ant.Main">
+            <arg value="-projecthelp"/>
+            <arg value="-quiet"/>
+        </java>
+    </target>
+
+</project>
