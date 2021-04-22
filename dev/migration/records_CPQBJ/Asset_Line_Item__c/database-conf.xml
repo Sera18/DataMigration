@@ -1,0 +1,255 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="updateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="updateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Id
+,CreatedDate
+,CreatedById
+,LastModifiedDate
+,LastModifiedById
+,CurrencyIsoCode
+,Account__c
+,Asset_Bank__c
+,Asset_Key__c
+,Name
+,Attribute_Group__c
+,Cancelled_Amount__c
+,Cancelled_Quantity__c
+,Center__c
+,Change_Out_Paid_Quantity__c
+,Change_Out_Unpaid_Quantity__c
+,Transfer_Out_Paid_Quantity__c
+,Transfer_Out_UnPaid_Quantity__c
+,Consumed_Quantity__c
+,Discount_Amount__c
+,End_Date__c
+,Expired_Quantity__c
+,Freezed_Paid_Qty__c
+,Freezed_Unpaid_Qty__c
+,Income_Recognition_Method__c
+,Invoiced_Amount__c
+,Invoiced_Amount_Per_Unit__c
+,Invoiced_Rev_Per_Unit__c
+,Invoiced_Revenue_Excluding_VAT__c
+,Is_Pass_MBG__c
+,Item_Code__c
+,Leftover_Quantity__c
+,List_Price__c
+,List_Price_Per_Unit__c
+,Order__c
+,Paid_Quantity__c
+,Payment_Reminder_Action_By_ACH__c
+,Payment_Reminder_Time_By_ACH__c
+,Price_Item__c
+,Product__c
+,Product_Bundle__c
+,Product_Bundle_Entry__c
+,Production_Type__c
+,Program__c
+,Program_Level__c
+,Promotion_Amount__c
+,Quantity__c
+,Refunded_Quantity__c
+,Season__c
+,Sick_Leave_Quantity__c
+,Start_Date__c
+,Total_Adjustment_Amount__c
+,Type__c
+,Unit__c
+,VAT__c
+,VAT_Amount__c
+,VAT_Code__c
+,VAT_Rate__c
+,Ext_ID__c
+,IsMigrated__c
+,Is_Migrated_From_ODIN__c
+,Course_Type__c
+,Product_Configuration__c
+,ODIN_Consumed_Quantity__c
+,Group__c
+,Consumed_Leftover_Qty__c
+,MBG_Free_Quantity__c
+,Pass_MBG_Time__c
+,Order_Expire_Datetime__c
+,Status__c
+FROM [Asset_Line_Item__c]
+ORDER BY Order__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Id</value>
+<value>CreatedDate</value>
+<value>CreatedById</value>
+<value>LastModifiedDate</value>
+<value>LastModifiedById</value>
+<value>CurrencyIsoCode</value>
+<value>Account__c</value>
+<value>Asset_Bank__c</value>
+<value>Asset_Key__c</value>
+<value>Name</value>
+<value>Attribute_Group__c</value>
+<value>Cancelled_Amount__c</value>
+<value>Cancelled_Quantity__c</value>
+<value>Center__c</value>
+<value>Change_Out_Paid_Quantity__c</value>
+<value>Change_Out_Unpaid_Quantity__c</value>
+<value>Transfer_Out_Paid_Quantity__c</value>
+<value>Transfer_Out_UnPaid_Quantity__c</value>
+<value>Consumed_Quantity__c</value>
+<value>Discount_Amount__c</value>
+<value>End_Date__c</value>
+<value>Expired_Quantity__c</value>
+<value>Freezed_Paid_Qty__c</value>
+<value>Freezed_Unpaid_Qty__c</value>
+<value>Income_Recognition_Method__c</value>
+<value>Invoiced_Amount__c</value>
+<value>Invoiced_Amount_Per_Unit__c</value>
+<value>Invoiced_Rev_Per_Unit__c</value>
+<value>Invoiced_Revenue_Excluding_VAT__c</value>
+<value>Is_Pass_MBG__c</value>
+<value>Item_Code__c</value>
+<value>Leftover_Quantity__c</value>
+<value>List_Price__c</value>
+<value>List_Price_Per_Unit__c</value>
+<value>Order__c</value>
+<value>Paid_Quantity__c</value>
+<value>Payment_Reminder_Action_By_ACH__c</value>
+<value>Payment_Reminder_Time_By_ACH__c</value>
+<value>Price_Item__c</value>
+<value>Product__c</value>
+<value>Product_Bundle__c</value>
+<value>Product_Bundle_Entry__c</value>
+<value>Production_Type__c</value>
+<value>Program__c</value>
+<value>Program_Level__c</value>
+<value>Promotion_Amount__c</value>
+<value>Quantity__c</value>
+<value>Refunded_Quantity__c</value>
+<value>Season__c</value>
+<value>Sick_Leave_Quantity__c</value>
+<value>Start_Date__c</value>
+<value>Total_Adjustment_Amount__c</value>
+<value>Type__c</value>
+<value>Unit__c</value>
+<value>VAT__c</value>
+<value>VAT_Amount__c</value>
+<value>VAT_Code__c</value>
+<value>VAT_Rate__c</value>
+<value>Ext_ID__c</value>
+<value>IsMigrated__c</value>
+<value>Is_Migrated_From_ODIN__c</value>
+<value>Course_Type__c</value>
+<value>Product_Configuration__c</value>
+<value>ODIN_Consumed_Quantity__c</value>
+<value>Group__c</value>
+<value>Consumed_Leftover_Qty__c</value>
+<value>MBG_Free_Quantity__c</value>
+<value>Pass_MBG_Time__c</value>
+<value>Order_Expire_Datetime__c</value>
+<value>Status__c</value>
+</list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="updateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Ext_ID__c,
+Ext_ID__c as Derived_From__c
+FROM Asset_Line_Item__c
+ORDER BY Order__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Ext_ID__c</value>
+<value>Derived_From__c</value>
+</list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+<value>SELECT
+Ext_ID__c,
+Bundle_Line_Item__c,
+Parent_Asset_Line_Item__c
+FROM [Asset_Line_Item__c]
+WHERE (Bundle_Line_Item__c is not null
+OR Parent_Asset_Line_Item__c is not null)</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Ext_ID__c</value>
+      <value>Bundle_Line_Item__c</value>
+      <value>Parent_Asset_Line_Item__c</value>
+</list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>INSERT INTO [Asset_Line_Item__c.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>INSERT INTO [Asset_Line_Item__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>SELECT Id
+    FROM [Asset_Line_Item__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

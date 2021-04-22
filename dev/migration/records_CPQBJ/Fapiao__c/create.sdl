@@ -1,0 +1,3 @@
+Id=Id
+Payment_Schedule__r.Ext_Id__c=Payment_Schedule__r:\Ext_ID__c
+Order_CPQ__r.Ext_Id__c=Order_CPQ__r:\Ext_ID__c

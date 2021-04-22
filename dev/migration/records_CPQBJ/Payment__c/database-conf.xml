@@ -1,0 +1,180 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="updateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="updateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+<value>
+SELECT 
+'fake_' + Id as Ext_Id__c
+,'true' as IsMigrated__c
+,Related_Payment__r.Order__c as Payment_Schedule__c
+,Related_Payment__c
+,Original_Payment__c
+,'Order Payment' as Payment_Type__c
+,'Payment Refunded' as Action__c
+,'Transfer' as Payment_Method__c
+,'false' as Is_Swopped__c
+,(-1) * Amount__c as Amount__c
+,0 as Balance__c,
+,Account__c
+,'false' as Bank_Confirmation__c
+,OwnerId
+,CreatedDate as Create_Time__c
+,Actual_Payment_Date__c
+,Center__c
+,Channel_Code__c
+,Legal_Entity__c
+,CurrencyIsoCode
+,CreatedDate
+,CreatedById
+,LastModifiedDate
+,LastModifiedById
+FROM Payment__c
+WHERE Order__r_RecordType_DeveloperName != 'Master_Order'
+AND Is_Swopped__c = 'true'</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Ext_Id__c</value>
+<value>Related_Payment__c</value>
+<value>Account__c</value>
+<value>Action__c</value>
+<value>Amount__c</value>
+<value>Balance__c</value>
+<value>Center__c</value>
+<value>Custom_Bank__c</value>
+<value>Legal_Entity__c</value>
+<value>Opportunity__c</value>
+<value>Payment_Type__c</value>
+<value>Payment_Method__c</value>
+<value>Create_Time__c</value>
+<value>CurrencyIsoCode</value>
+<value>CreatedDate</value>
+<value>CreatedById</value>
+<value>LastModifiedDate</value>
+<value>LastModifiedById</value>
+<value>Original_Payment__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+p.Id,
+p.Order__c as [Payment_Schedule__r.Ext_Id__c],
+ps.Order__c as [OMNI_Order__r.Ext_Id__c],
+CASE WHEN Is_Swopped__c = 'true' THEN 'Transfer' 
+ELSE Payment_Method__c END as Payment_Method__c
+FROM Payment__c p
+join Payment_Schedule__c ps
+on p.Order__c = ps.Ext_Id__c
+and p.Order__r_RecordType_DeveloperName != 'Master_Order'
+AND (p.Order__r_Order_Payment_Status__c = 'Completed' 
+OR p.Order__r_Order_Payment_Status__c = 'Not Applicable')
+AND p.Action__c != 'Offset'
+ORDER BY p.Order__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Id</value>
+<value>Payment_Schedule__r.Ext_Id__c</value>
+<value>OMNI_Order__r.Ext_Id__c</value>
+<value>Payment_Method__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="updateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Id,
+'Deposit Payment' as Payment_Type__c,
+CASE WHEN Action__c = 'Use Deposit' THEN 'Use Deposit' 
+ELSE 'Deposit Collected' END as Action__c,
+Order__r_Apttus_Config2__RelatedOpportunityId__c as Opportunity__c,
+'' as Order__c,
+'true' as Is_Partial_Pay_to_Deposit__c
+FROM Payment__c
+WHERE Order__r_RecordType_DeveloperName != 'Master_Order'
+AND Order__r_Order_Payment_Status__c = 'Partially Completed' 
+AND Amount__c > 0
+AND Order__r_Apttus_Config2__RelatedOpportunityId__c is not null
+AND Action__c != 'Offset'
+ORDER BY Order__r_Apttus_Config2__RelatedOpportunityId__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Id</value>
+<value>Payment_Type__c</value>
+<value>Action__c</value>
+<value>Opportunity__c</value>
+<value>Order__c</value>
+<value>Is_Partial_Pay_to_Deposit__c</value>
+</list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Payment__c.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Payment__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> SELECT Id
+    FROM [Payment__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

@@ -1,0 +1,13 @@
+Id=Id
+#CreatedDate=CreatedDate
+#CreatedById=CreatedById
+#LastModifiedDate=LastModifiedDate
+#LastModifiedById=LastModifiedById
+CurrencyIsoCode=CurrencyIsoCode
+Asset_Line_Item__c=Asset_Line_Item__r:\Ext_ID__c
+Payment_Schedule__c=Payment_Schedule__r:\Ext_ID__c
+Product__c=Product__c
+Quantity__c=Quantity__c
+Ext_ID__c=Ext_ID__c
+IsMigrated__c=IsMigrated__c
+Cart_Line_Item__c=Cart_Line_Item__r:\Ext_ID__c

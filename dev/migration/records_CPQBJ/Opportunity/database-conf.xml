@@ -1,0 +1,134 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+ord.Center__c, 
+'fake_' + ord.Ext_ID__c as Ext_Id__c,
+ord.Sold_To__c as AccountId,
+ord.Business_Unit__c as Business_Unit__c,
+ord.CurrencyIsoCode as CurrencyIsoCode,
+'Closed Won' as StageName,
+format(ord.CreatedDate,'yyyy-MM-dd') as CloseDate,
+'Transfer' as [Type],
+'Transfer-' + ord.Apttus_Order_Number__c + '-' + convert(nvarchar(max), format(ord.CreatedDate,'yyyy-MM-dd HH:mm:ss'), 0) as Name,
+center.Approver_L1__c as OwnerId,
+apttusOrder.Apttus_Config2__SoldToAccountId__r_AccountSource as LeadSource,
+apttusOrder.Apttus_Config2__SoldToAccountId__r_Marketing_Channel_Group__c as Marketing_Channel_Group__c,
+apttusOrder.Apttus_Config2__SoldToAccountId__r_MarketingChannel__c as MarketingChannel__c,
+apttusOrder.Apttus_Config2__SoldToAccountId__r_Marketing_Sub_Channel__c as Marketing_Sub_Channel__c
+FROM Order__c ord
+join Apttus_Config2__Order__c apttusOrder
+on ord.Ext_Id__c = apttusOrder.Id
+join Center center
+on ord.Center__c  = center.Id
+WHERE (ord.Type__c = 'Transfer' 
+OR (ord.Is_Student_Transfer__c = 'true'
+AND ord.Type__c != 'Refund'
+AND ord.Type__c != 'Cancellation'))
+AND 'fake_' + ord.Ext_ID__c in ('fake_a3Y2x000000rC3TEAU','fake_a3Y0I000002mKwUUAU')
+ORDER BY ord.Sold_To__c
+</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Center__c</value>
+<value>Ext_ID__c</value>
+<value>AccountId</value>
+<value>Business_Unit__c</value>
+<value>CurrencyIsoCode</value>
+<value>StageName</value>
+<value>CloseDate</value>
+<value>Type</value>
+<value>Name</value>
+<value>OwnerId</value>
+<value>LeadSource</value>
+<value>Marketing_Channel_Group__c</value>
+<value>MarketingChannel__c</value>
+<value>Marketing_Sub_Channel__c</value>
+</list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT 
+'fake_' + Ext_ID__c as Opportunity__c,
+Ext_ID__c
+FROM Order__c
+WHERE (Type__c = 'Transfer'
+OR (Is_Student_Transfer__c = 'true'
+AND Type__c != 'Refund'
+AND Type__c != 'Cancellation'))</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Opportunity__c</value>
+<value>Ext_ID__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>INSERT INTO [Opportunity.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>USE [Salesforce] INSERT INTO [Opportunity]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>SELECT Id
+    FROM [Opportunity.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

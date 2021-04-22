@@ -1,0 +1,14 @@
+Center__c=Center__c
+Ext_ID__c=Ext_ID__c
+AccountId=AccountId
+Business_Unit__c=Business_Unit__c
+CurrencyIsoCode=CurrencyIsoCode
+StageName=StageName
+CloseDate=CloseDate
+Type=Type
+Name=Name
+OwnerId=OwnerId
+LeadSource=LeadSource
+Marketing_Channel_Group__c=Marketing_Channel_Group__c
+MarketingChannel__c=MarketingChannel__c
+Marketing_Sub_Channel__c=Marketing_Sub_Channel__c

@@ -1,0 +1,9 @@
+Id=Id
+Payment_Type__c=Payment_Type__c
+Action__c=Action__c
+Opportunity__c=Opportunity__c
+Order__c=Order__c
+Payment_Schedule__r.Ext_Id__c=Payment_Schedule__r:\Ext_ID__c
+OMNI_Order__r.Ext_Id__c=OMNI_Order__r:\Ext_ID__c
+Payment_Method__c=Payment_Method__c
+Is_Partial_Pay_to_Deposit__c=Is_Partial_Pay_to_Deposit__c

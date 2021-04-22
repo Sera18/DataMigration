@@ -1,0 +1,171 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Account__c,
+Asset_Bank_Key__c,
+Name,
+Canceled_Quantity__c,          
+Center__c,
+Change_Out_Paid_Quantity__c,
+Change_Out_Unpaid_Quantity__c,
+Consumed_Completion_Time__c,
+Consumed_Leftover_Qty__c,
+Consumed_Quantity__c,
+CurrencyIsoCode,
+Expired_Quantity__c,
+Freezed_Paid_Qty__c,
+Freezed_Qty__c,
+Freezed_Unpaid_Qty__c,
+Last_Mark_Attendance_Time__c,
+Income_Recognition_Method__c,
+Leftover_Qty__c,
+Legal_Entity__c,
+Paid_Quantity__c,
+Product__c,
+Product_Family__c,
+Product_Unit__c,
+Production_Type__c,
+Program__c,                                                                
+Quantity__c,                                                              
+Refund_Quantity__c,
+Reserved_Quantity__c,
+Sick_Leave_Expire_Qty__c,
+Sick_Leave_Qty__c,
+Transfer_Out_Paid_Quantity__c,
+Transfer_Out_Unpaid_Quantity__c,
+IsMigrated__c,
+ODIN_Consumed_Quantity__c,
+MBG_Free_Quantity__c
+FROM Asset_Bank__c
+WHERE Asset_Bank_Key__c not in
+(SELECT Asset_Bank_Key__c FROM [Asset_Bank__c.association])
+ORDER BY Account__c</value>
+    </property>
+    <property name="columnNames">
+      <list>
+      <value>Account__c</value>
+<value>Asset_Bank_Key__c</value>
+<value>Name</value>
+<value>Canceled_Quantity__c</value>
+<value>Center__c</value>
+<value>Change_Out_Paid_Quantity__c</value>
+<value>Change_Out_Unpaid_Quantity__c</value>
+<value>Consumed_Completion_Time__c</value>
+<value>Consumed_Leftover_Qty__c</value>
+<value>Consumed_Quantity__c</value>
+<value>CurrencyIsoCode</value>
+<value>Expired_Quantity__c</value>
+<value>Freezed_Paid_Qty__c</value>
+<value>Freezed_Qty__c</value>
+<value>Freezed_Unpaid_Qty__c</value>
+<value>Last_Mark_Attendance_Time__c</value>
+<value>Income_Recognition_Method__c</value>
+<value>Leftover_Qty__c</value>
+<value>Legal_Entity__c</value>
+<value>Paid_Quantity__c</value>
+<value>Product__c</value>
+<value>Product_Family__c</value>
+<value>Product_Unit__c</value>
+<value>Production_Type__c</value>
+<value>Program__c</value>
+<value>Quantity__c</value>
+<value>Refund_Quantity__c</value>
+<value>Reserved_Quantity__c</value>
+<value>Sick_Leave_Qty__c</value>
+<value>Transfer_Out_Paid_Quantity__c</value>
+<value>Transfer_Out_Unpaid_Quantity__c</value>
+<value>IsMigrated__c</value>
+<value>ODIN_Consumed_Quantity__c</value>
+<value>MBG_Free_Quantity__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Ext_ID__c 
+,Asset_Key__c as Asset_Bank__c
+FROM Asset_Line_Item__c
+WHERE (Production_Type__c = 'Classroom' AND Unit__c = 'ACH') 
+OR (Production_Type__c = 'Classroom Online' AND Unit__c = 'OCH') 
+OR (Production_Type__c = 'Credits' AND Unit__c = 'Credit') 
+OR (Production_Type__c = 'Trip' AND Unit__c = 'Session')
+OR (Production_Type__c = 'Local Classroom Online' AND Unit__c = 'LOH')
+ORDER BY Order__c
+</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Ext_ID__c</value>
+<value>Asset_Bank__c</value>
+      </list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>INSERT INTO [Asset_Bank__c.association]
+(Id,Asset_Bank_Key__c)
+VALUES (@Id@,@Asset_Bank_Key__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Asset_Bank_Key__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>INSERT INTO [Asset_Bank__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>SELECT Id
+    FROM [Asset_Bank__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

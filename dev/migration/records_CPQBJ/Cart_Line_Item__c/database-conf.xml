@@ -1,0 +1,171 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+After_Promotion_Price__c
+,Attribute_Group__c
+,Cart__c
+,CreatedById
+,CreatedDate
+,CurrencyIsoCode
+,Derived_From_ALI__c
+,Discount_Amount__c
+,Invoiced_Amount__c
+,Invoiced_Amount_Per_Unit__c
+,Invoiced_Rev_Per_Unit__c
+,Invoiced_Revenue_Excluding_VAT__c
+,LastModifiedById
+,LastModifiedDate
+,List_Price__c
+,List_Price_Per_Unit__c
+,Product__c
+,Product_Attribute_Group__c
+,Product_Bundle__c
+,Product_Bundle_Entry__c
+,Product_Program_Level__c
+,Production_Type__c
+,Program_Level__c
+,Program__c
+,Promotion_Amount__c
+,Quantity__c
+,Quantity_Per_Quarter__c
+,Sequence__c
+,SystemModstamp
+,Total_Adjustment_Amount__c
+,Type__c
+,Unit__c
+,Unit_Sequence__c
+,VAT__c
+,VAT_Amount__c
+,VAT_Code__c
+,VAT_Rate__c
+,Ext_ID__c
+,IsMigrated__c
+FROM Cart_Line_Item__c
+ORDER BY Cart__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>After_Promotion_Price__c</value>
+<value>Attribute_Group__c</value>
+<value>Cart__c</value>
+<value>CreatedById</value>
+<value>CreatedDate</value>
+<value>LastModifiedById</value>
+<value>LastModifiedDate</value>
+<value>CurrencyIsoCode</value>
+<value>Derived_From_ALI__c</value>
+<value>Discount_Amount__c</value>
+<value>Invoiced_Amount__c</value>
+<value>Invoiced_Amount_Per_Unit__c</value>
+<value>Invoiced_Rev_Per_Unit__c</value>
+<value>Invoiced_Revenue_Excluding_VAT__c</value>
+<value>List_Price__c</value>
+<value>List_Price_Per_Unit__c</value>
+<value>Product__c</value>
+<value>Product_Attribute_Group__c</value>
+<value>Product_Bundle__c</value>
+<value>Product_Bundle_Entry__c</value>
+<value>Product_Program_Level__c</value>
+<value>Production_Type__c</value>
+<value>Program_Level__c</value>
+<value>Program__c</value>
+<value>Promotion_Amount__c</value>
+<value>Quantity__c</value>
+<value>Quantity_Per_Quarter__c</value>
+<value>Sequence__c</value>
+<value>SystemModstamp</value>
+<value>Total_Adjustment_Amount__c</value>
+<value>Type__c</value>
+<value>Unit__c</value>
+<value>Unit_Sequence__c</value>
+<value>VAT__c</value>
+<value>VAT_Amount__c</value>
+<value>VAT_Code__c</value>
+<value>VAT_Rate__c</value>
+<value>Ext_ID__c</value>
+<value>IsMigrated__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Bundle_Line_Item__c
+,Ext_ID__c
+FROM Cart_Line_Item__c
+WHERE Bundle_Line_Item__c is not null</value>
+    </property>
+    <property name="columnNames">
+      <list>
+<value>Bundle_Line_Item__c</value>
+<value>Ext_ID__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Cart_Line_Item__c.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Cart_Line_Item__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> SELECT Id
+    FROM [Cart_Line_Item__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

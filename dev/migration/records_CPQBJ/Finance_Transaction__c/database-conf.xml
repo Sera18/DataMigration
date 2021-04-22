@@ -1,0 +1,179 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Id
+,CreatedDate
+,CreatedById
+,LastModifiedDate
+,LastModifiedById
+,CurrencyIsoCode
+,Account__c
+,Amount__c
+,Asset_Line_Item__c
+,CB_Quantity__c
+,Center__c
+,Customer_Id__c
+,Net_Amount__c
+,Net_Unit_Price__c
+,OB_Quantity__c
+,Order__c
+,Quantity__c
+,Transaction_Category__c
+,Transaction_Date__c
+,Transaction_Type__c
+,Unit_Price__c
+,Usage__c
+,VAT__c
+,Ext_ID__c
+,IsMigrated__c
+FROM [Finance_Transaction__c]
+ORDER BY Asset_Line_Item__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Id</value>
+<value>CreatedDate</value>
+<value>CreatedById</value>
+<value>LastModifiedDate</value>
+<value>LastModifiedById</value>
+<value>CurrencyIsoCode</value>
+<value>Account__c</value>
+<value>Amount__c</value>
+<value>Asset_Line_Item__c</value>
+<value>CB_Quantity__c</value>
+<value>Center__c</value>
+<value>Customer_Id__c</value>
+<value>Net_Amount__c</value>
+<value>Net_Unit_Price__c</value>
+<value>OB_Quantity__c</value>
+<value>Order__c</value>
+<value>Quantity__c</value>
+<value>Transaction_Category__c</value>
+<value>Transaction_Date__c</value>
+<value>Transaction_Type__c</value>
+<value>Unit_Price__c</value>
+<value>Usage__c</value>
+<value>VAT__c</value>
+<value>Ext_ID__c</value>
+<value>IsMigrated__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Id
+,CurrencyIsoCode
+,Account__c
+,Amount__c
+,Asset_Line_Item__c
+,CB_Quantity__c
+,Center__c
+,Customer_Id__c
+,Net_Amount__c
+,Net_Unit_Price__c
+,OB_Quantity__c
+,Order__c
+,Quantity__c
+,Transaction_Category__c
+,Transaction_Date__c
+,Transaction_Type__c
+,Unit_Price__c
+,Usage__c
+,VAT__c
+,Ext_ID__c
+,IsMigrated__c
+FROM [Finance_Transaction__c]</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Id</value>
+<value>CurrencyIsoCode</value>
+<value>Account__c</value>
+<value>Amount__c</value>
+<value>Asset_Line_Item__c</value>
+<value>CB_Quantity__c</value>
+<value>Center__c</value>
+<value>Customer_Id__c</value>
+<value>Net_Amount__c</value>
+<value>Net_Unit_Price__c</value>
+<value>OB_Quantity__c</value>
+<value>Order__c</value>
+<value>Quantity__c</value>
+<value>Transaction_Category__c</value>
+<value>Transaction_Date__c</value>
+<value>Transaction_Type__c</value>
+<value>Unit_Price__c</value>
+<value>Usage__c</value>
+<value>VAT__c</value>
+<value>Ext_ID__c</value>
+<value>IsMigrated__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Finance_Transaction__c.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Finance_Transaction__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> SELECT Id
+    FROM [Finance_Transaction__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>

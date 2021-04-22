@@ -1,0 +1,186 @@
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+  <bean class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close" id="msql">
+    <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
+    <property name="url" value="" />
+    <property name="username" value="" />
+    <property name="password" value="" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="createDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="createSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="modifyDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="modifySqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="associateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="associateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="pullbackDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="pullbackSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.DatabaseConfig" id="truncateDatabaseConfig" singleton="true">
+    <property name="dataSource" ref="msql" />
+    <property name="sqlConfig" ref="truncateSqlConfig" />
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="createSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Adjustable_Amount__c
+,Approval_Status__c
+,Business_Unit__c
+,Cart_State__c
+,Center__c
+,Center_Director__c
+,Contract_URL__c
+,CreatedById
+,CreatedDate
+,Created_Time__c
+,CurrencyIsoCode
+,Derived_From_Order__c
+,Discount_Amount__c
+,Expired_Time__c
+,Has_Sent_E_Contract__c
+,Invoiced_Amount__c
+,Invoiced_Revenue_Excluding_VAT__c
+,Is_Cross_LE__c
+,Is_Left_Over_Change__c
+,Is_School_Transfer__c
+,Is_Sick_Leave_Change__c
+,LastModifiedById
+,LastModifiedDate
+,Legal_Entity__c
+,List_Price__c
+,Opportunity__c
+,Order__c
+,OwnerId
+,Parent_Consent_Time__c
+,Payment_Schedule_Ids_To_Cancel__c
+,Promotion_Amount__c
+,Refund_Reason__c
+,Refund_Reason_Category__c
+,Refund_Request__c
+,Region_Director__c
+,Sale_Date_Time__c
+,Sold_To__c
+,Status__c
+,Total_Discount_Amount__c
+,Transfer_From__c
+,Transfer_From_CD__c
+,Transfer_To__c
+,Type__c
+,VAT_Amount__c
+,Ext_ID__c
+,IsMigrated__c
+FROM Cart__c
+ORDER BY Order__c</value>
+    </property>
+    <property name="columnNames">
+      <list><value>Adjustable_Amount__c</value>
+<value>Approval_Status__c</value>
+<value>Business_Unit__c</value>
+<value>Cart_State__c</value>
+<value>Center__c</value>
+<value>Center_Director__c</value>
+<value>Contract_URL__c</value>
+<value>CreatedById</value>
+<value>CreatedDate</value>
+<value>LastModifiedById</value>
+<value>LastModifiedDate</value>
+<value>Created_Time__c</value>
+<value>CurrencyIsoCode</value>
+<value>Derived_From_Order__c</value>
+<value>Discount_Amount__c</value>
+<value>Expired_Time__c</value>
+<value>Has_Sent_E_Contract__c</value>
+<value>Invoiced_Amount__c</value>
+<value>Invoiced_Revenue_Excluding_VAT__c</value>
+<value>Is_Cross_LE__c</value>
+<value>Is_Left_Over_Change__c</value>
+<value>Is_School_Transfer__c</value>
+<value>Is_Sick_Leave_Change__c</value>
+<value>Legal_Entity__c</value>
+<value>List_Price__c</value>
+<value>Opportunity__c</value>
+<value>Order__c</value>
+<value>OwnerId</value>
+<value>Parent_Consent_Time__c</value>
+<value>Payment_Schedule_Ids_To_Cancel__c</value>
+<value>Promotion_Amount__c</value>
+<value>Refund_Reason__c</value>
+<value>Refund_Reason_Category__c</value>
+<value>Refund_Request__c</value>
+<value>Region_Director__c</value>
+<value>Sale_Date_Time__c</value>
+<value>Sold_To__c</value>
+<value>Status__c</value>
+<value>Total_Discount_Amount__c</value>
+<value>Transfer_From__c</value>
+<value>Transfer_From_CD__c</value>
+<value>Transfer_To__c</value>
+<value>Type__c</value>
+<value>VAT_Amount__c</value>
+<value>Ext_ID__c</value>
+<value>IsMigrated__c</value></list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="modifySqlConfig" singleton="true">
+    <property name="sqlString">
+      <value>
+SELECT
+Related_Cart__c
+,Ext_ID__c
+FROM Cart__c
+WHERE Related_Cart__c is not null</value>
+    </property>
+    <property name="columnNames">
+      <list>
+<value>Related_Cart__c</value>
+<value>Ext_ID__c</value>
+      </list>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="associateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Cart__c.association]
+(Id,Ext_ID__c)
+VALUES (@Id@,@Ext_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Ext_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="pullbackSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> INSERT INTO [Cart__c]
+                                (Id,Name,Phone,External_ID__c)
+                                VALUES (@Id@,@Name@,@Phone@,@External_ID__c@)</value>
+    </property>
+    <property name="sqlParams">
+      <map>
+        <entry key="Id" value="java.lang.String" />
+        <entry key="Name" value="java.lang.String" />
+        <entry key="Phone" value="java.lang.String" />
+        <entry key="External_ID__c" value="java.lang.String" />
+      </map>
+    </property>
+  </bean>
+  <bean class="com.salesforce.dataloader.dao.database.SqlConfig" id="truncateSqlConfig" singleton="true">
+    <property name="sqlString">
+      <value> SELECT Id
+    FROM [Cart__c.association]</value>
+    </property>
+    <property name="columnNames">
+      <list>
+        <value>Id</value>
+      </list>
+    </property>
+  </bean>
+</beans>
